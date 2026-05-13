@@ -24,6 +24,15 @@
 - `.gitignore` created
 - `.cursor/rules` created
 
+### Phase 1 — Foundation
+
+- [x] `feature/backend-setup` — ASP.NET Core Web API (.NET 10) project structure + `/health` endpoint — `2026-05-13`
+  - Folder structure: Controllers, Data, DTOs, Entities, Enums, Exceptions, Middleware, Repositories, Services
+  - `GlobalExceptionMiddleware` — maps NotFoundException→404, ConflictException→409, ValidationException→400
+  - Custom exceptions: `NotFoundException`, `ConflictException`, `ValidationException`
+  - `GET /api/health` → `{ "status": "healthy" }`
+  - Swagger UI added (Swashbuckle.AspNetCore) — available at `/swagger` in Development only
+
 ---
 
 ## 🔄 In Progress
@@ -36,7 +45,6 @@
 
 ### Phase 1 — Foundation
 
-- [ ] `feature/backend-setup` — ASP.NET Core project structure + `/health` endpoint
 - [ ] `feature/ci-cd` — GitHub Actions pipeline → Azure App Service deploy
 - [ ] `feature/database-models` — EF Core entities, DbContext, migrations, Azure SQL
 
@@ -54,7 +62,7 @@
 
 ### Phase 4 — Frontend
 
-- [ ] `feature/frontend-setup` — React + TypeScript + Tailwind + Axios + routing
+- [ ] `feature/frontend-setup` — React + TypeScript + Chakra UI + Axios + routing
 - [ ] `feature/frontend-auth` — Login page + JWT interceptors + protected routes
 - [ ] `feature/frontend-clients` — Clients pages
 - [ ] `feature/frontend-accounts` — Bank accounts pages
@@ -71,7 +79,6 @@
 
 ## 📌 Notes & Decisions Made During Development
 
-> Add notes here as development progresses. Example:
->
-> - `2024-01-15` — Decided to use Zustand instead of Redux Toolkit — simpler for this project size
+- `2026-05-13` — Used .NET 10 (not .NET 8) — .NET 10 is installed on the dev machine
+- `2026-05-13` — Swagger gated behind `IsDevelopment()` — will not be exposed on Azure
 
