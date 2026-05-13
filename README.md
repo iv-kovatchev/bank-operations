@@ -30,7 +30,7 @@ The application is intended for internal use by bank employees and administrator
 ## 🎨 Frontend
 - React
 - TypeScript
-- MUI
+- Chakra UI
 - React Query
 
 ## ☁️ DevOps
