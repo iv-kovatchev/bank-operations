@@ -61,6 +61,22 @@
 
 ---
 
+## 2026-05-14 — ci-cd
+
+### Azure OIDC Federated Identity instead of client secret
+**Decision:** The GitHub Actions workflow authenticates to Azure using OIDC Federated Identity (`azure/login@v2` with `client-id`, `tenant-id`, `subscription-id` secrets) rather than a long-lived client secret or publish profile.
+**Why:** Federated credentials are short-lived tokens issued per workflow run — no secret rotation needed and no risk of a leaked long-lived credential. The `id-token: write` permission is scoped only to the deploy job, not the build job.
+
+### Path filter on CI trigger
+**Decision:** The workflow triggers only when files under `backend/**` are changed.
+**Why:** Frontend changes, docs updates, and configuration files should not trigger a backend deployment. Keeps pipeline runs fast and avoids unnecessary Azure deployments for unrelated commits.
+
+### Two-job pipeline (build + deploy)
+**Decision:** Build and deploy are split into separate jobs with artifact hand-off via `actions/upload-artifact` / `actions/download-artifact`.
+**Why:** Standard GitHub Actions pattern — isolates the build environment from the deploy environment, allows the deploy job to be re-run independently if a deploy fails without rebuilding, and makes permissions minimal per job (`contents: read` on build, `id-token: write` on deploy).
+
+---
+
 ## Template for new decisions
 
 ```markdown
