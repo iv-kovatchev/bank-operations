@@ -11,6 +11,7 @@ Always read these files before starting any task:
 Before working on any existing feature, check `.claude/knowledge/` for implementation details.
 Available knowledge files (updated as features are completed):
 - @.claude/knowledge/backend-setup.md — Program.cs pipeline, GlobalExceptionMiddleware, custom exceptions, Swagger setup
+- @.claude/knowledge/ci-cd.md — GitHub Actions workflow, Azure OIDC auth, build/deploy jobs, path filter
 
 ## Project Summary
 A closed, employee-only web application for managing bank clients, accounts, and credits.
