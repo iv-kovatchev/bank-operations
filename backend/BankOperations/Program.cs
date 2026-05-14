@@ -19,8 +19,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
-app.UseHttpsRedirection();
-
 app.MapControllers();
 
 app.Run();
