@@ -9,7 +9,7 @@
 ### Architecture & Planning
 
 - Finalized database schema (TPT inheritance for Clients and Credits)
-- Defined roles: Admin, Employee
+- Defined roles: Admin, Employee, Client
 - Defined all functional requirements
 - Decided on single-project backend structure (no layered solution)
 - Decided on generic interfaces only — no generic implementations
@@ -52,28 +52,23 @@
 
 ### Phase 1 — Foundation
 
+- [x] `feature/backend-setup` — ASP.NET Core Web API (.NET 10) project structure + `/health` endpoint
+- [x] `feature/ci-cd` — GitHub Actions pipeline → Azure App Service deploy
 - [ ] `feature/database-models` — EF Core entities, DbContext, migrations, Azure SQL
+- [ ] `feature/auth` — ASP.NET Identity + JWT + Refresh Token + SendGrid email (employee creation by Admin; client creation by Employee/Admin)
 
-### Phase 2 — Auth
-
-- [ ] `feature/auth` — ASP.NET Identity + JWT + Refresh Token + SendGrid email on employee creation
-
-### Phase 3 — Core Features
-
-- [ ] `feature/clients` — Clients CRUD (Individual + Corporate)
-- [ ] `feature/bank-accounts` — Bank Accounts CRUD
-- [ ] `feature/credits` — Credits (Consumer + Mortgage) + Repayment Plan generation
-- [ ] `feature/installments` — Mark installment as paid + credit status check
-- [ ] `feature/activity-log` — Activity Log middleware + Admin view
-
-### Phase 4 — Frontend
+### Phase 2 — Frontend Foundation
 
 - [ ] `feature/frontend-setup` — React + TypeScript + Chakra UI + Axios + routing
 - [ ] `feature/frontend-auth` — Login page + JWT interceptors + protected routes
-- [ ] `feature/frontend-clients` — Clients pages
-- [ ] `feature/frontend-accounts` — Bank accounts pages
-- [ ] `feature/frontend-credits` — Credits + repayment plan pages
-- [ ] `feature/frontend-admin` — Employee management + Activity Log pages
+
+### Phase 3 — Core Features (backend + frontend in parallel)
+
+- [ ] `feature/clients` + `feature/frontend-clients` — Clients CRUD (Individual + Corporate)
+- [ ] `feature/bank-accounts` + `feature/frontend-accounts` — Bank Accounts CRUD
+- [ ] `feature/credits` + `feature/frontend-credits` — Credits (Consumer + Mortgage) + Repayment Plan generation
+- [ ] `feature/installments` — Mark installment as paid + credit status check
+- [ ] `feature/activity-log` + `feature/frontend-admin` — Activity Log middleware + Employee management + Admin view
 
 ---
 
@@ -88,4 +83,8 @@
 - `2026-05-13` — Used .NET 10 (not .NET 8) — .NET 10 is installed on the dev machine
 - `2026-05-13` — Swagger gated behind `IsDevelopment()` — will not be exposed on Azure
 - `2026-05-14` — CI/CD uses Azure OIDC Federated Identity (no client secret stored) — credentials managed via GitHub secrets with scoped permissions per job
+- `2026-05-15` — Revised roles: three roles (Admin, Employee, Client); Client role has read-only self-service access
+- `2026-05-15` — Client registration is a single-step transaction: creates AspNetUsers account (role=Client) + Client/IndividualClient or CorporateClient record + sends welcome email
+- `2026-05-15` — Clients table: removed Status (use IsActive from AspNetUsers) and CreatedAt (use CreatedAt from AspNetUsers); ClientId is now PK and FK → AspNetUsers (1:1)
+- `2026-05-15` — RepaymentInstallments: removed TotalAmount (= PrincipalPart + InterestPart, derived) and IsPaid (= PaidAt != null, derived)
 
