@@ -23,6 +23,10 @@
 **Decision:** Access Token (15 min lifetime) + Refresh Token stored in HttpOnly cookie.
 **Why:** Standard secure approach for REST API + SPA architecture. Short-lived access token limits damage if intercepted. HttpOnly cookie prevents JS access to refresh token (XSS protection).
 
+### Two-Factor Authentication (2FA)
+**Decision:** Implement 2FA with OTP code sent via email on every login.
+**Why:** Banking system requires higher security. If password is stolen, attacker still cannot login without access to the email. ASP.NET Identity has built-in 2FA support making implementation straightforward (~1-2 extra days of work).
+
 ### CreditServices table
 **Decision:** Interest rate, max amount, and max term are stored in a `CreditServices` table, not hardcoded.
 **Why:** The assignment states these values are determined by credit type. Storing them in DB allows changes without redeployment.
@@ -74,6 +78,26 @@
 ### Two-job pipeline (build + deploy)
 **Decision:** Build and deploy are split into separate jobs with artifact hand-off via `actions/upload-artifact` / `actions/download-artifact`.
 **Why:** Standard GitHub Actions pattern — isolates the build environment from the deploy environment, allows the deploy job to be re-run independently if a deploy fails without rebuilding, and makes permissions minimal per job (`contents: read` on build, `id-token: write` on deploy).
+
+---
+
+## 2026-05-15 — Domain model revisions
+
+### Three roles: Admin, Employee, Client
+**Decision:** `AspNetUsers` has three roles: Admin, Employee, and Client. Clients are users with role `Client` and read-only access to their own data.
+**Why:** The original design excluded clients from the system entirely. Adding a Client role with JWT auth allows the same API to serve client-facing endpoints without a separate application. Role-based authorization (`[Authorize(Roles = "...")]`) keeps the permission model simple and explicit.
+
+### Client registration in one step (Employee/Admin creates AspNetUsers + Client record atomically)
+**Decision:** When an Employee or Admin registers a new client, a single service call creates the `AspNetUsers` account (role=Client), the `Client`/`IndividualClient` or `CorporateClient` record, and sends a welcome email with the generated password — all in one transaction.
+**Why:** A two-step flow (create user, then create client) would allow an inconsistent state where a client user exists without a Client record, or vice versa. A single atomic operation prevents this. It also reduces the UI to one form, which is better UX for employees.
+
+### Clients table: ClientId is PK and FK → AspNetUsers (1:1); Status and CreatedAt removed
+**Decision:** `Clients.ClientId` is both the primary key and a foreign key pointing to `AspNetUsers.Id`. `Status` and `CreatedAt` columns are removed from the `Clients` table.
+**Why:** Every client IS an AspNetUsers account — there is no meaningful difference between `Client.Id` and `ApplicationUser.Id`. Using the user's Id as the PK eliminates a redundant column and enforces the 1:1 constraint at the database level. `IsActive` and `CreatedAt` already exist on `AspNetUsers` — duplicating them in `Clients` would create two sources of truth.
+
+### RepaymentInstallments: TotalAmount and IsPaid removed (derived values)
+**Decision:** `TotalAmount` and `IsPaid` columns are removed from `RepaymentInstallments`. `TotalAmount` is computed as `PrincipalPart + InterestPart`; `IsPaid` is determined by `PaidAt != null`.
+**Why:** Storing values that can be derived from other columns risks inconsistency — if `PrincipalPart` is ever corrected, `TotalAmount` could silently become stale. Computed properties on the entity class are sufficient and always consistent.
 
 ---
 

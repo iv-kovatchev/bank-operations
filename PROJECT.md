@@ -6,7 +6,7 @@
 
 ## 📋 Description
 
-A closed, employee-only web application for managing clients, bank accounts, and credit services at a bank. Customers do not have access to the system.
+A web application for managing clients, bank accounts, and credit services at a bank. Employees manage client data and financial operations; clients can log in to view their own accounts, credits, and repayment plans (read-only).
 
 ---
 
@@ -14,10 +14,10 @@ A closed, employee-only web application for managing clients, bank accounts, and
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | C# + ASP.NET Core Web API (.NET 8) |
+| Backend | C# + ASP.NET Core Web API (.NET 10) |
 | Frontend | React + TypeScript |
 | Database | Azure SQL (SQL Server) |
-| ORM | Entity Framework Core 8 (Code First) |
+| ORM | Entity Framework Core 10 (Code First) |
 | Auth | ASP.NET Identity + JWT (Access Token 15min + Refresh Token in HttpOnly cookie) |
 | Email | SendGrid |
 | CI/CD | GitHub Actions → Azure App Service |
@@ -35,19 +35,26 @@ A closed, employee-only web application for managing clients, bank accounts, and
 
 ## 👥 Roles
 
+Three roles exist in `AspNetUsers`. Each role determines what actions the user can perform.
+
 ### Admin
-- Creates accounts for new employees
-- On creation: password is generated → template email sent to employee via SendGrid
+- Creates accounts for Admin, Employee, and Client users
+- On creation: password is generated → template email sent via SendGrid
 - Deactivates employees ("firing") — `IsActive = false`
 - Views Activity Log of all employees
 
 ### Employee
-- Adds clients (individual & corporate)
+- Creates clients (individual & corporate) — this automatically creates an AspNetUsers account with role Client
 - Opens bank accounts
 - Grants credits (consumer & mortgage)
 - Generates repayment plans (annuity)
 - Marks installments as paid
 - Checks credit status
+
+### Client
+- Read-only access to their own data: bank accounts, credits, repayment plans
+- Cannot modify any data
+- Account is created automatically during client registration (by Employee or Admin)
 
 ---
 
@@ -134,8 +141,11 @@ Id, Email, PasswordHash, FirstName, LastName, Role, IsActive, CreatedAt
 
 #### Clients (base class)
 ```
-Id, Status, CreatedAt, CreatedByUserId (FK → AspNetUsers)
+ClientId (PK, FK → AspNetUsers), CreatedByUserId (FK → AspNetUsers)
 ```
+> ClientId = AspNetUsers.Id — the client IS an AspNetUsers account (1:1).
+> IsActive and CreatedAt are read from AspNetUsers — not duplicated here.
+> CreatedByUserId = the Employee or Admin who registered this client.
 
 #### IndividualClients (1:1 with Clients — TPT)
 ```
@@ -179,9 +189,11 @@ Id, CreditId (FK, unique), MonthlyInstallment, GeneratedAt
 
 #### RepaymentInstallments (1:N with RepaymentPlans)
 ```
-Id, RepaymentPlanId (FK), InstallmentNumber, DueDate, TotalAmount, PrincipalPart, InterestPart, RemainingBalance, IsPaid, PaidAt, CreatedByUserId (FK, nullable)
+Id, RepaymentPlanId (FK), InstallmentNumber, DueDate, PrincipalPart, InterestPart, RemainingBalance, PaidAt (nullable), CreatedByUserId (FK, nullable)
 ```
-> CreatedByUserId = the employee who marked the installment as paid
+> TotalAmount is omitted — always derived as `PrincipalPart + InterestPart`.
+> IsPaid is omitted — determined by `PaidAt != null`.
+> CreatedByUserId = the employee who marked the installment as paid.
 
 #### ActivityLogs
 ```
@@ -225,6 +237,18 @@ Interest rate, maximum amount, and term are configured per credit type. Stored i
 
 ### Why ActivityLogs?
 Admin functionality — tracking all employee actions. Automatically recorded on every operation.
+
+### Why three roles (Admin, Employee, Client)?
+Clients need read-only access to their own data via the same API. A third role keeps authorization clean — `[Authorize(Roles = "Client")]` on read endpoints, `[Authorize(Roles = "Employee,Admin")]` on write endpoints.
+
+### Why is Clients.ClientId a FK to AspNetUsers?
+Each client is also a user — they need to log in. The 1:1 relationship eliminates a redundant Id column and ensures there is no orphaned client record without a user account.
+
+### Why is client registration a single step (no separate user creation)?
+Separate steps would allow an employee to create a client record without a login account, leaving the system in an inconsistent state. Combining them in one service transaction guarantees both records are always created together or neither is.
+
+### Why are TotalAmount and IsPaid removed from RepaymentInstallments?
+Both are derivable from existing columns: `TotalAmount = PrincipalPart + InterestPart`, `IsPaid = PaidAt != null`. Storing derived values risks inconsistency if either source value changes. Computed properties in the entity are sufficient.
 
 ### Repayment Plan — Annuity Formula
 ```
