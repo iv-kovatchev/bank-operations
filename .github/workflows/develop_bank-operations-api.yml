@@ -39,9 +39,29 @@ jobs:
           name: .net-app
           path: ${{env.DOTNET_ROOT}}/myapp
 
-  deploy:
+  migrate:
     runs-on: ubuntu-latest
     needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Run migrations
+        run: dotnet ef database update --project backend/BankOperations
+        env:
+          ConnectionStrings__DefaultConnection: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: migrate
     permissions:
       id-token: write #This is required for requesting the JWT
       contents: read #This is required for actions/checkout
