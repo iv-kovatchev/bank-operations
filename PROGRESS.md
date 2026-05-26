@@ -55,7 +55,7 @@
 - [x] `feature/backend-setup` — ASP.NET Core Web API (.NET 10) project structure + `/health` endpoint
 - [x] `feature/ci-cd` — GitHub Actions pipeline → Azure App Service deploy
 - [ ] `feature/database-models` — EF Core entities, DbContext, migrations, Azure SQL
-- [ ] `feature/auth` — ASP.NET Identity + JWT + Refresh Token + SendGrid email (employee creation by Admin; client creation by Employee/Admin)
+- [ ] `feature/auth` — ASP.NET Identity + JWT + Refresh Token + 2FA (OTP via email) + SendGrid
 
 ### Phase 2 — Frontend Foundation
 

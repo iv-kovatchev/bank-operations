@@ -23,6 +23,10 @@
 **Decision:** Access Token (15 min lifetime) + Refresh Token stored in HttpOnly cookie.
 **Why:** Standard secure approach for REST API + SPA architecture. Short-lived access token limits damage if intercepted. HttpOnly cookie prevents JS access to refresh token (XSS protection).
 
+### Two-Factor Authentication (2FA)
+**Decision:** Implement 2FA with OTP code sent via email on every login.
+**Why:** Banking system requires higher security. If password is stolen, attacker still cannot login without access to the email. ASP.NET Identity has built-in 2FA support making implementation straightforward (~1-2 extra days of work).
+
 ### CreditServices table
 **Decision:** Interest rate, max amount, and max term are stored in a `CreditServices` table, not hardcoded.
 **Why:** The assignment states these values are determined by credit type. Storing them in DB allows changes without redeployment.
