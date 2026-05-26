@@ -51,6 +51,10 @@ jobs:
         with:
           dotnet-version: '10.x'
 
+      - name: Restore dependencies
+        run: dotnet restore
+        working-directory: backend/BankOperations
+
       - name: Install EF Core tools
         run: dotnet tool install --global dotnet-ef
 
