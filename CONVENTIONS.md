@@ -211,34 +211,39 @@ public class ClientService : IClientService
 Custom exceptions live in the `Exceptions/` folder. Used in services, caught by global middleware.
 
 ```csharp
-// Exceptions/NotFoundException.cs
+// Exceptions/NotFoundException.cs — two overloads: Guid id and string identifier
 public class NotFoundException : Exception
 {
     public NotFoundException(string entity, Guid id)
         : base($"{entity} with id {id} was not found.") { }
+
+    public NotFoundException(string entity, string identifier)
+        : base($"{entity} '{identifier}' was not found.") { }
 }
 
 // Exceptions/ValidationException.cs
 public class ValidationException : Exception
 {
-    public ValidationException(string message)
-        : base(message) { }
+    public ValidationException(string message) : base(message) { }
 }
 
 // Exceptions/ConflictException.cs
 public class ConflictException : Exception
 {
-    public ConflictException(string message)
-        : base(message) { }
+    public ConflictException(string message) : base(message) { }
 }
 
+// Exceptions/UnauthorizedException.cs → 401
+public class UnauthorizedException : Exception
+{
+    public UnauthorizedException(string message) : base(message) { }
+}
 ```
 
 Global middleware catches all exceptions and returns structured JSON:
 
 ```json
 { "error": "Client with id ... was not found." }
-
 ```
 
 ---
@@ -400,6 +405,44 @@ var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 [Authorize(Roles = "Client")]                 // client self-service (read-only)
 [Authorize(Roles = "Employee,Admin,Client")]  // any authenticated user
 
+```
+
+---
+
+## 🔌 DI Registration — Extension Methods
+
+All repository and service registrations live in `Config/`, not inline in `Program.cs`. Each layer has its own extension method.
+
+```csharp
+// Config/RepositoryExtensions.cs
+public static class RepositoryExtensions
+{
+    public static IServiceCollection AddRepositories(this IServiceCollection services)
+    {
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IOtpRepository, OtpRepository>();
+        // Add new repositories here
+        return services;
+    }
+}
+
+// Config/ServiceExtensions.cs
+public static class ServiceExtensions
+{
+    public static IServiceCollection AddServices(this IServiceCollection services)
+    {
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IOtpService, OtpService>();
+        services.AddScoped<IEmailService, EmailService>();
+        // Add new services here
+        return services;
+    }
+}
+
+// Program.cs — called as:
+builder.Services.AddRepositories();
+builder.Services.AddServices();
 ```
 
 ---
