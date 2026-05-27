@@ -59,6 +59,21 @@
   - `UnauthorizedException` — new custom exception → 401; added to `GlobalExceptionMiddleware`
   - DI registrations extracted to `Config/ServiceExtensions.cs` and `Config/RepositoryExtensions.cs`
 
+### Phase 2 — Frontend Foundation
+
+- [x] `feature/frontend-setup` — React + TypeScript + Radix UI Themes + React Query + React Router + React Hook Form + Zod — `2026-05-28`
+  - Vite scaffold + full `src/` folder structure: `api/`, `components/`, `hooks/`, `pages/`, `services/`, `theme/`, `types/`
+  - `src/theme/palette.css` — custom green + gray dark/light palette with P3 wide-gamut support; imported first in `main.tsx`
+  - `main.tsx` — providers: `QueryClientProvider` → `Theme` (dark, green, gray) → `BrowserRouter`
+  - `src/services/http.ts` — generic fetch wrapper (`get`, `post`, `put`, `del`) with JWT from localStorage, 401 auto-redirect, error parsing matching backend `{ "error": "..." }` format; `credentials: 'include'` on all requests
+  - `src/api/auth/` — auth hooks: `useLogin.ts`, `useVerifyOtp.ts`, `useLogout.ts`; each calls `http` directly
+  - `src/types/auth.types.ts` — `LoginRequest`, `VerifyOtpRequest`, `AuthResponse`
+  - `useLogin` — on OTP required: stores email in `sessionStorage`, navigates to `/verify-otp`
+  - `useVerifyOtp` — decodes JWT with `jwt-decode`, redirects to role-based dashboard (`/admin/dashboard`, `/employee/dashboard`, `/client/dashboard`)
+  - `useLogout` — clears `localStorage` and redirects to `/login` on both success and error
+  - Reusable components: `PageLayout`, `Sidebar`, `PageHeader`, `LoadingSpinner`, `Toast` — each in own folder with `.types.ts` and `.styles.css`
+  - Backend: `TokenService.cs` role claim changed from `ClaimTypes.Role` to plain `"role"` for simple JWT decoding on the frontend
+
 ---
 
 ## 🔄 In Progress
@@ -78,7 +93,7 @@
 
 ### Phase 2 — Frontend Foundation
 
-- [ ] `feature/frontend-setup` — React + TypeScript + Chakra UI + Axios + routing
+- [x] `feature/frontend-setup` — React + TypeScript + Radix UI Themes + React Query + React Router + React Hook Form + Zod
 - [ ] `feature/frontend-auth` — Login page + JWT interceptors + protected routes
 
 ### Phase 3 — Core Features (backend + frontend in parallel)
@@ -111,4 +126,9 @@
 - `2026-05-28` — DI registrations extracted from `Program.cs` into `Config/ServiceExtensions.cs` and `Config/RepositoryExtensions.cs` to keep `Program.cs` clean as the project grows
 - `2026-05-28` — Refresh token never appears in the response body (`[JsonIgnore]`); delivered exclusively via HttpOnly cookie set in `AuthController`
 - `2026-05-28` — OTP is always invalidated before generating a new one (`InvalidateAllForUserAsync`) — prevents replay of an old code if user requests a second OTP
+- `2026-05-28` — Frontend uses `@radix-ui/themes` instead of Chakra UI; no Axios — native `fetch` wrapped in `src/services/http.ts`; stack: Vite + React 19 + TypeScript + Radix UI + React Query + React Router + React Hook Form + Zod
+- `2026-05-28` — JWT role claim changed from `ClaimTypes.Role` (long Microsoft URI) to plain `"role"` in `TokenService.cs`; `TokenValidationParameters.RoleClaimType = "role"` must be set in `Program.cs` for `[Authorize(Roles)]` to work
+- `2026-05-28` — Frontend coding rules: always arrow functions; never inline `style={{}}`; styling via Radix UI props or `.styles.css` co-located files
+- `2026-05-28` — Auth hooks call `http` service directly — no intermediate `authApi` abstraction layer; each hook in its own file under `src/api/auth/`
+- `2026-05-28` — Shared TypeScript types live in `src/types/` (e.g. `auth.types.ts`), not co-located with API hook files
 

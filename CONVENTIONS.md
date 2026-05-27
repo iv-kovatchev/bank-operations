@@ -480,6 +480,102 @@ remainingBalance -= principal;
 
 ---
 
+## ⚛️ Frontend Conventions
+
+### Arrow functions — always
+
+All components, hooks, and utility functions use arrow functions. No `function` declarations.
+
+```tsx
+// ✅ Correct
+const MyComponent = () => <div />;
+const handleClick = () => {};
+const useMyHook = () => { ... };
+
+// ❌ Wrong
+function MyComponent() { return <div />; }
+function handleClick() {}
+```
+
+### No inline styles — ever
+
+Never use `style={{ }}`. Use Radix UI component props or `.styles.css` files.
+
+```tsx
+// ✅ Correct — Radix props
+<Box p="4" mt="2" />
+
+// ✅ Correct — CSS class from .styles.css
+<div className="sidebar-link" />
+
+// ❌ Wrong
+<Box style={{ padding: '16px' }} />
+<div style={{ color: 'red' }} />
+```
+
+### HTTP service
+
+All API calls go through `src/services/http.ts`. Never call `fetch` directly in components or hooks.
+
+```ts
+// src/services/http.ts — get, post, put, del
+// Attaches JWT from localStorage, handles 401 redirect, parses { "error": "..." } responses
+const get = async <T>(url: string): Promise<T> => { ... };
+const post = async <T>(url: string, body: unknown): Promise<T> => { ... };
+export const http = { get, post, put, del };
+```
+
+### React Query hooks — one file per hook
+
+Each domain has its hooks in `src/api/<domain>/`, one hook per file. Hooks call `http` directly.
+
+```
+src/api/auth/
+├── useLogin.ts
+├── useVerifyOtp.ts
+└── useLogout.ts
+```
+
+```ts
+// src/api/auth/useLogin.ts
+export const useLogin = () => {
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: (data: LoginRequest) => http.post<AuthResponse>('/api/auth/login', data),
+    onSuccess: (response, variables) => {
+      if (response.requiresOtp) {
+        sessionStorage.setItem('otpEmail', variables.email);
+        navigate('/verify-otp');
+      }
+    },
+  });
+};
+```
+
+### Types in `src/types/`
+
+Shared TypeScript types live in `src/types/`, named `<domain>.types.ts`.
+
+```
+src/types/
+├── auth.types.ts       → LoginRequest, VerifyOtpRequest, AuthResponse
+├── client.types.ts     → (future)
+└── account.types.ts    → (future)
+```
+
+### Component folder structure
+
+Each reusable component lives in its own folder with a component file, a types file, and an optional styles file.
+
+```
+src/components/Sidebar/
+├── Sidebar.tsx
+├── Sidebar.types.ts
+└── Sidebar.styles.css
+```
+
+---
+
 ## 🧪 Tests
 
 ```csharp

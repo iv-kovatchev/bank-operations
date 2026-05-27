@@ -39,9 +39,9 @@
 **Decision:** Every employee action is recorded in an `ActivityLogs` table.
 **Why:** Admin requirement — admins must be able to see who did what and when. Implemented as a service called from every operation.
 
-### Chakra UI for frontend
-**Decision:** Chakra UI instead of Tailwind CSS or MUI.
-**Why:** Provides ready-made accessible components suitable for an admin-style banking application. Faster development than Tailwind (no need to compose utilities), more flexible than MUI.
+### Radix UI Themes for frontend
+**Decision:** `@radix-ui/themes` instead of Chakra UI, Tailwind CSS, or MUI.
+**Why:** Radix Themes provides a complete, accessible design system with dark mode, custom color palettes (including P3 wide-gamut), and composable layout primitives. It is framework-agnostic and integrates cleanly with Vite + React 19. Chakra UI has React 19 compatibility issues at the time of setup.
 
 ### React Query for server state
 **Decision:** React Query for all server data fetching and caching.
@@ -126,6 +126,34 @@
 ### DI registrations extracted to extension methods in `Config/`
 **Decision:** All `builder.Services.AddScoped<...>()` calls for repositories and services live in `Config/RepositoryExtensions.cs` and `Config/ServiceExtensions.cs`, invoked from `Program.cs` as `builder.Services.AddRepositories()` and `builder.Services.AddServices()`.
 **Why:** `Program.cs` grows long quickly as features are added. Grouping registrations by layer in extension methods keeps `Program.cs` readable and avoids merge conflicts when multiple features add registrations at the same time.
+
+---
+
+## 2026-05-28 — feature/frontend-setup
+
+### Native fetch wrapper instead of Axios
+**Decision:** HTTP calls use a thin `src/services/http.ts` wrapper around the native `fetch` API instead of Axios.
+**Why:** Axios adds ~14 KB and no meaningful benefit when `fetch` is universally supported. The wrapper handles JWT injection, 401 redirect, and error parsing in ~50 lines, covering all project needs without a dependency.
+
+### JWT role claim as plain `"role"` string
+**Decision:** `TokenService.cs` emits the role claim with key `"role"` instead of `ClaimTypes.Role` (which expands to the long Microsoft schema URI).
+**Why:** `ClaimTypes.Role` produces `"http://schemas.microsoft.com/ws/2008/06/identity/claims/role"` as the JWT key, requiring complex decoding on the frontend. A plain `"role"` key is readable, standard (matches OAuth2/OIDC conventions), and works with `jwtDecode<{ role: string }>()` directly. `TokenValidationParameters.RoleClaimType = "role"` must be set in `Program.cs` to keep `[Authorize(Roles)]` working on the backend.
+
+### Auth hooks call http directly — no intermediate service layer
+**Decision:** React Query mutation hooks in `src/api/auth/` call `http.post()` directly; there is no separate `authService.ts` or `authApi.ts` object between the hook and the HTTP layer.
+**Why:** An intermediate service layer adds a file and a function call with no benefit for simple CRUD mutations. The hook already encapsulates the mutation logic (`onSuccess`, `onError`, navigation). Adding a service layer would split logic that belongs together across two files.
+
+### Each React Query hook in its own file
+**Decision:** Auth hooks are split into `useLogin.ts`, `useVerifyOtp.ts`, `useLogout.ts` — one file per hook — rather than a single `authApi.queries.ts`.
+**Why:** A single queries file becomes a growing list of unrelated exports. Individual files are easier to locate, import selectively, and review in isolation. The pattern scales to other domains (clients, accounts, credits) without producing large barrel files.
+
+### No inline styles — CSS files or Radix props only
+**Decision:** `style={{ }}` inline props are banned. Styling must use Radix UI component props (layout, color, size, spacing) or CSS classes defined in co-located `.styles.css` files.
+**Why:** Inline styles bypass the Radix CSS variable system (dark mode, theming), are not reusable, and mix presentation with structure. Co-located `.styles.css` files keep styles close to the component without polluting JSX.
+
+### Shared types in `src/types/`
+**Decision:** TypeScript types shared across multiple files live in `src/types/` (e.g. `auth.types.ts`), not co-located with the API hook files that use them.
+**Why:** Types are referenced by hooks, components, and pages. Placing them in `src/api/auth/` would create import paths like `../../api/auth/authApi.types` from a component — coupling the component to the API layer's folder structure. `src/types/` is a neutral location accessible from anywhere.
 
 ---
 
