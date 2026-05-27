@@ -44,7 +44,8 @@
 
 ## 🔄 In Progress
 
-- Nothing in progress yet
+- `feature/auth` — ASP.NET Identity + JWT + Refresh Token + 2FA (OTP via email) + SendGrid
+  - [x] `DataSeeder` — roles (Admin, Employee, Client) + initial admin account seeded on startup — `2026-05-28`
 
 ---
 
@@ -55,7 +56,7 @@
 - [x] `feature/backend-setup` — ASP.NET Core Web API (.NET 10) project structure + `/health` endpoint
 - [x] `feature/ci-cd` — GitHub Actions pipeline → Azure App Service deploy
 - [ ] `feature/database-models` — EF Core entities, DbContext, migrations, Azure SQL
-- [ ] `feature/auth` — ASP.NET Identity + JWT + Refresh Token + 2FA (OTP via email) + SendGrid
+- [ ] `feature/auth` — ASP.NET Identity + JWT + Refresh Token + 2FA (OTP via email) + SendGrid (in progress)
 
 ### Phase 2 — Frontend Foundation
 
@@ -87,4 +88,5 @@
 - `2026-05-15` — Client registration is a single-step transaction: creates AspNetUsers account (role=Client) + Client/IndividualClient or CorporateClient record + sends welcome email
 - `2026-05-15` — Clients table: removed Status (use IsActive from AspNetUsers) and CreatedAt (use CreatedAt from AspNetUsers); ClientId is now PK and FK → AspNetUsers (1:1)
 - `2026-05-15` — RepaymentInstallments: removed TotalAmount (= PrincipalPart + InterestPart, derived) and IsPaid (= PaidAt != null, derived)
+- `2026-05-28` — DataSeeder runs on every startup via `app.Services.CreateScope()` in `Program.cs`; all seed operations are idempotent (existence-checked before insert)
 

@@ -101,6 +101,14 @@
 
 ---
 
+## 2026-05-28 — feature/auth
+
+### Startup seeding via DataSeeder
+**Decision:** Roles and the initial admin account are seeded at application startup inside `Program.cs` using `app.Services.CreateScope()`, not via a migration or a one-off script.
+**Why:** Migrations run in CI before the app boots and have no access to `UserManager` / `RoleManager`. A startup seeder runs in the full DI context, making it the only practical place to use Identity APIs. All seed operations are idempotent (existence-checked before insert), so re-running on every startup is safe with no performance penalty beyond a few DB reads.
+
+---
+
 ## Template for new decisions
 
 ```markdown
