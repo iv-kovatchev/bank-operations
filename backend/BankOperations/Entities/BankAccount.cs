@@ -3,9 +3,8 @@ using BankOperations.Enums;
 
 namespace BankOperations.Entities;
 
-public class BankAccount
+public class BankAccount : BaseEntity
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
     public string IBAN { get; set; } = string.Empty;
     public decimal Balance { get; set; } = 0;
     public AccountStatus Status { get; set; } = AccountStatus.Active;

@@ -1,8 +1,7 @@
 namespace BankOperations.Entities;
 
-public class RepaymentInstallment
+public class RepaymentInstallment : BaseEntity
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
     public Guid RepaymentPlanId { get; set; }
     public int InstallmentNumber { get; set; }
     public DateTime DueDate { get; set; }

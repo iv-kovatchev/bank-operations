@@ -40,6 +40,25 @@
   - Deploy job: download artifact → Azure OIDC login (Federated Identity, no client secret) → `azure/webapps-deploy@v3` to `bank-operations-api` Production slot
   - Azure credentials stored as GitHub secrets (`AZUREAPPSERVICE_CLIENTID_*`, `AZUREAPPSERVICE_TENANTID_*`, `AZUREAPPSERVICE_SUBSCRIPTIONID_*`)
 
+- [x] `feature/database-models` — EF Core entities, DbContext, migrations, Azure SQL — `2026-05-27`
+  - All entities created: `Client`, `IndividualClient`, `CorporateClient`, `BankAccount`, `Credit`, `ConsumerCredit`, `MortgageCredit`, `RepaymentPlan`, `RepaymentInstallment`, `ActivityLog`, `OtpCode`, `RefreshToken`
+  - `ApplicationDbContext` configured with all EF Fluent API configurations in `Data/Configurations/`
+  - TPT inheritance configured for Clients and Credits
+  - `decimal(18,2)` precision enforced on all monetary columns
+  - Initial migration created and applied; migrate job added to CI/CD pipeline
+
+- [x] `feature/auth` — ASP.NET Identity + JWT + Refresh Token + 2FA (OTP via email) — `2026-05-28`
+  - `DataSeeder` — roles (Admin, Employee, Client) + initial admin account seeded on startup
+  - `AuthController` — `POST /api/auth/login`, `POST /api/auth/verify-otp`, `POST /api/auth/refresh`, `POST /api/auth/logout`; decorated with `[AllowAnonymous]`; rate-limited (5 req/min)
+  - Two-step login: Step 1 validates password → generates + emails OTP; Step 2 validates OTP → issues access token + refresh token
+  - `TokenService` — generates JWT access token (15 min) + cryptographic refresh token; stores/revokes refresh tokens via `RefreshTokenRepository`
+  - `OtpService` — generates 6-digit OTP via `RandomNumberGenerator`, stores with 5-min expiry, invalidates all previous OTPs for user on new request
+  - `EmailService` — sends OTP via SMTP (`System.Net.Mail`); credentials injected via env vars `EMAIL_ADDRESS` / `EMAIL_PASSWORD`
+  - `AuthResultDto` — `RefreshToken` field marked `[JsonIgnore]`; refresh token delivered only via HttpOnly cookie, never in response body
+  - `NotFoundException` — added string overload for email-based lookups (`NotFoundException("User", email)`)
+  - `UnauthorizedException` — new custom exception → 401; added to `GlobalExceptionMiddleware`
+  - DI registrations extracted to `Config/ServiceExtensions.cs` and `Config/RepositoryExtensions.cs`
+
 ---
 
 ## 🔄 In Progress
@@ -54,8 +73,8 @@
 
 - [x] `feature/backend-setup` — ASP.NET Core Web API (.NET 10) project structure + `/health` endpoint
 - [x] `feature/ci-cd` — GitHub Actions pipeline → Azure App Service deploy
-- [ ] `feature/database-models` — EF Core entities, DbContext, migrations, Azure SQL
-- [ ] `feature/auth` — ASP.NET Identity + JWT + Refresh Token + 2FA (OTP via email) + SendGrid
+- [x] `feature/database-models` — EF Core entities, DbContext, migrations, Azure SQL
+- [x] `feature/auth` — ASP.NET Identity + JWT + Refresh Token + 2FA (OTP via email)
 
 ### Phase 2 — Frontend Foundation
 
@@ -87,4 +106,9 @@
 - `2026-05-15` — Client registration is a single-step transaction: creates AspNetUsers account (role=Client) + Client/IndividualClient or CorporateClient record + sends welcome email
 - `2026-05-15` — Clients table: removed Status (use IsActive from AspNetUsers) and CreatedAt (use CreatedAt from AspNetUsers); ClientId is now PK and FK → AspNetUsers (1:1)
 - `2026-05-15` — RepaymentInstallments: removed TotalAmount (= PrincipalPart + InterestPart, derived) and IsPaid (= PaidAt != null, derived)
+- `2026-05-28` — DataSeeder runs on every startup via `app.Services.CreateScope()` in `Program.cs`; all seed operations are idempotent (existence-checked before insert)
+- `2026-05-28` — Email service uses `System.Net.Mail.SmtpClient` instead of SendGrid; simpler setup, no third-party SDK dependency
+- `2026-05-28` — DI registrations extracted from `Program.cs` into `Config/ServiceExtensions.cs` and `Config/RepositoryExtensions.cs` to keep `Program.cs` clean as the project grows
+- `2026-05-28` — Refresh token never appears in the response body (`[JsonIgnore]`); delivered exclusively via HttpOnly cookie set in `AuthController`
+- `2026-05-28` — OTP is always invalidated before generating a new one (`InvalidateAllForUserAsync`) — prevents replay of an old code if user requests a second OTP
 

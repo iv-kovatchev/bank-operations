@@ -2,9 +2,8 @@ using BankOperations.Entities.Credits;
 
 namespace BankOperations.Entities;
 
-public class RepaymentPlan
+public class RepaymentPlan : BaseEntity
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
     public Guid CreditId { get; set; }
     public decimal MonthlyInstallment { get; set; }
     public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;

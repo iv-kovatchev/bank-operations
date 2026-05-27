@@ -3,9 +3,8 @@ using BankOperations.Enums;
 
 namespace BankOperations.Entities;
 
-public class CreditService
+public class CreditService : BaseEntity
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
     public CreditType Type { get; set; }
     public decimal InterestRate { get; set; }
     public decimal MaxAmount { get; set; }

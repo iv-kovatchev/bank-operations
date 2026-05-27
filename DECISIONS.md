@@ -101,6 +101,34 @@
 
 ---
 
+## 2026-05-28 — feature/auth
+
+### Startup seeding via DataSeeder
+**Decision:** Roles and the initial admin account are seeded at application startup inside `Program.cs` using `app.Services.CreateScope()`, not via a migration or a one-off script.
+**Why:** Migrations run in CI before the app boots and have no access to `UserManager` / `RoleManager`. A startup seeder runs in the full DI context, making it the only practical place to use Identity APIs. All seed operations are idempotent (existence-checked before insert), so re-running on every startup is safe with no performance penalty beyond a few DB reads.
+
+### Two-step login flow (password → OTP → tokens)
+**Decision:** Login is split into two HTTP calls: `POST /api/auth/login` validates credentials and emails an OTP; `POST /api/auth/verify-otp` validates the OTP and issues the JWT access token + refresh token.
+**Why:** Mandatory 2FA on every login. Combining both steps in one call would require issuing tokens before OTP confirmation, which defeats the purpose of 2FA. Splitting them allows the frontend to show an OTP entry screen without holding any credentials in memory between steps.
+
+### Refresh token delivered via HttpOnly cookie only — `[JsonIgnore]` on DTO
+**Decision:** `AuthResultDto.RefreshToken` is annotated `[JsonIgnore]`. The refresh token is set as an HttpOnly cookie in `AuthController.VerifyOtpAsync` and never appears in the response body.
+**Why:** A refresh token in the response body is accessible to JavaScript, making it vulnerable to XSS. An HttpOnly cookie is invisible to JS. The DTO field still exists so the service layer can pass the value up to the controller cleanly without breaking the layer boundary.
+
+### OTP invalidated before generating a new one
+**Decision:** `OtpService.GenerateAndSaveOtpAsync` calls `InvalidateAllForUserAsync` before saving the new OTP.
+**Why:** Without this, a user who requests a second OTP still has their first (valid) OTP in the database. An attacker who intercepted the first code could use it even after a second send. Invalidating all previous codes on each new request closes this window.
+
+### SmtpClient instead of SendGrid
+**Decision:** `EmailService` uses `System.Net.Mail.SmtpClient` with SMTP credentials from env vars, not the SendGrid SDK.
+**Why:** The project is in early development and SendGrid requires account setup, API key management, and an external dependency. `SmtpClient` works with any SMTP provider (Gmail, Outlook, etc.) and has zero dependencies. Can be swapped for SendGrid later by replacing `EmailService` behind `IEmailService` without touching any other code.
+
+### DI registrations extracted to extension methods in `Config/`
+**Decision:** All `builder.Services.AddScoped<...>()` calls for repositories and services live in `Config/RepositoryExtensions.cs` and `Config/ServiceExtensions.cs`, invoked from `Program.cs` as `builder.Services.AddRepositories()` and `builder.Services.AddServices()`.
+**Why:** `Program.cs` grows long quickly as features are added. Grouping registrations by layer in extension methods keeps `Program.cs` readable and avoids merge conflicts when multiple features add registrations at the same time.
+
+---
+
 ## Template for new decisions
 
 ```markdown
