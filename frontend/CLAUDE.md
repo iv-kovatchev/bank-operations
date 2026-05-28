@@ -20,6 +20,16 @@ src/
 └── utils/            → Helper functions
 ```
 
+## CRITICAL RULES
+- NEVER use inline styles (`style={{ }}`) - EVER
+- Always use CSS classes in `.styles.css` files or Radix UI component props for styling
+- This rule has no exceptions
+
+## Rules
+- Always use arrow functions instead of regular functions
+- Example: `const MyComponent = () => {}` instead of `function MyComponent() {}`
+- Example: `const handleClick = () => {}` instead of `function handleClick() {}`
+
 ## Key Rules
 - Never use `any` — always type everything
 - All API calls go through `services/` — never call axios directly in components
