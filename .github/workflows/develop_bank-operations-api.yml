@@ -62,7 +62,12 @@ jobs:
         run: dotnet restore backend/BankOperations/BankOperations.csproj
 
       - name: Run migrations
-        run: dotnet ef database update --project backend/BankOperations
+        run: |
+          for i in 1 2 3 4 5; do
+            dotnet ef database update --project backend/BankOperations && break
+            echo "Attempt $i failed, retrying in 15s..."
+            sleep 15
+          done
         env:
           ConnectionStrings__DefaultConnection: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
 
