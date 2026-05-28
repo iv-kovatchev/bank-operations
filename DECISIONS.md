@@ -157,6 +157,24 @@
 
 ---
 
+## 2026-05-29 — feature/frontend-auth
+
+### Context split: definition file + provider file
+**Decision:** Each context is split into two files: `*ContextDef.ts` (exports the context object and its type, no JSX) and `*Context.tsx` (exports only the provider component).
+**Why:** Vite Fast Refresh requires that a `.tsx` file exports only React components. Exporting both `AuthContext` (a non-component value) and `AuthContextProvider` (a component) from the same file breaks HMR. Separating them satisfies the rule without changing the public API — consumers import the hook from `useAuth.ts` and the provider from `AuthContext.tsx`.
+
+### Proactive token refresh via React Query instead of reactive 401 retry
+**Decision:** Access token is refreshed proactively every 14 minutes using `useQuery` inside `AuthContextProvider`, not by intercepting 401 responses in `http.ts`.
+**Why:** A reactive approach (catch 401 → refresh → retry) requires queueing concurrent failed requests and retrying them, which adds significant complexity to the HTTP layer. A proactive approach with a 14-minute interval (token expires in 15 minutes) keeps `http.ts` simple and eliminates the retry entirely. The `queryFn` stores the new token in `localStorage` directly (external system sync — correct place), so no `setState` is called in a `useEffect`, avoiding the cascading render lint warning.
+
+### Route-based single-point layout
+**Decision:** `PageLayout` and the public header shell are applied via nested layout routes (`AuthenticatedLayout`, `PublicLayout`) defined once in `src/routes/index.tsx`, not imported in individual page components.
+**Why:** Importing `PageLayout` in every page creates repetitive boilerplate and a risk of pages accidentally missing the layout. A single layout route wraps all pages in a group, making the layout implicit and guaranteed. Adding a new authenticated page only requires adding a `<Route>` — no layout import needed.
+
+### ThemeContext owns Radix appearance
+**Decision:** `ThemeContextProvider` manages `'light' | 'dark'` state. `App.tsx` reads from `useTheme()` and passes it to the Radix `<Theme appearance={theme}>`. Theme is persisted to `localStorage`.
+**Why:** Radix UI's `Theme` component controls the appearance of all child components via CSS variables. Having a single context own the theme state and persist it ensures consistency across the app and across page reloads without flash of wrong theme.
+
 ## Template for new decisions
 
 ```markdown

@@ -74,6 +74,18 @@
   - Reusable components: `PageLayout`, `Sidebar`, `PageHeader`, `LoadingSpinner`, `Toast` — each in own folder with `.types.ts` and `.styles.css`
   - Backend: `TokenService.cs` role claim changed from `ClaimTypes.Role` to plain `"role"` for simple JWT decoding on the frontend
 
+- [x] `feature/frontend-auth` — Login page + protected routes + auto token refresh — `2026-05-29`
+  - `src/context/auth/` — `authContextDef.ts` (context object + type), `AuthContext.tsx` (provider only), `useAuth.ts`; split into def + provider to satisfy Vite Fast Refresh
+  - `src/context/theme/` — `themeContextDef.ts`, `ThemeContext.tsx`, `useTheme.ts`; same pattern; reads/writes `localStorage('theme')`, defaults to `'dark'`
+  - Auto token refresh — `useQuery(['token-refresh'])` inside `AuthContextProvider`; calls `POST /api/auth/refresh` directly (not via `http.ts`) every 14 min when authenticated; `localStorage` updated in `queryFn`; on error: hard redirect to `/login`
+  - Route guards — `PublicRoutes`, `AdminRoutes`, `EmployeeRoutes`, `ClientRoutes` using `<Outlet />`; each checks `useAuth()` and redirects appropriately
+  - Route layouts — `PublicLayout` (Header with `isAuthenticated={false}` + Outlet) and `AuthenticatedLayout` (`PageLayout` + Outlet); both defined once in `src/routes/index.tsx` — no per-page import needed
+  - `Header` component — logo + "Bank Operations" text; theme toggle (`MoonIcon`/`SunIcon`); when authenticated: display name (left of avatar) + Radix `Avatar` + `DropdownMenu` (role, Settings, Sign out); business logic in `useHeader.ts`
+  - `PageLayout` — sticky `Header` (56px) + column flex; reads `isAuthenticated` from `useAuth()` internally
+  - Pages — `LoginPage`, `VerifyOtpPage` (centered card with layered box shadow in light, none in dark); `AdminDashboard`, `EmployeeDashboard`, `ClientDashboard` (placeholders); `NotFound` (404)
+  - `src/index.css` — replaced Vite scaffold template with clean global reset (`box-sizing`, zero margin, `#root { height: 100vh }`)
+  - `src/vite-env.d.ts` — added for IDE `import.meta.env` support
+
 ---
 
 ## 🔄 In Progress
@@ -94,7 +106,7 @@
 ### Phase 2 — Frontend Foundation
 
 - [x] `feature/frontend-setup` — React + TypeScript + Radix UI Themes + React Query + React Router + React Hook Form + Zod
-- [ ] `feature/frontend-auth` — Login page + JWT interceptors + protected routes
+- [x] `feature/frontend-auth` — Login page + JWT interceptors + protected routes
 
 ### Phase 3 — Core Features (backend + frontend in parallel)
 
@@ -131,4 +143,9 @@
 - `2026-05-28` — Frontend coding rules: always arrow functions; never inline `style={{}}`; styling via Radix UI props or `.styles.css` co-located files
 - `2026-05-28` — Auth hooks call `http` service directly — no intermediate `authApi` abstraction layer; each hook in its own file under `src/api/auth/`
 - `2026-05-28` — Shared TypeScript types live in `src/types/` (e.g. `auth.types.ts`), not co-located with API hook files
+- `2026-05-29` — Context files split into `*Def.ts` (context object + type) + `*Context.tsx` (provider component only) to satisfy Vite Fast Refresh rule: files cannot export both components and non-component values
+- `2026-05-29` — Auto token refresh implemented via `useQuery` inside `AuthContextProvider` (proactive, every 14 min) instead of reactive 401 retry in `http.ts`; token stored directly in `queryFn` to avoid `setState` in effects
+- `2026-05-29` — Route layouts (`PublicLayout`, `AuthenticatedLayout`) defined once in `src/routes/index.tsx` using React Router nested routes with `<Outlet />`; pages never import `PageLayout` directly
+- `2026-05-29` — `ThemeContext` manages dark/light appearance; Radix `Theme` component receives `appearance` from `useTheme()` inside `App.tsx`; theme persisted in `localStorage`
+- `2026-05-29` — Context folders: `src/context/auth/` and `src/context/theme/`; each contains the def file, provider, and hook
 

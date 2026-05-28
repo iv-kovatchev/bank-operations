@@ -574,6 +574,36 @@ src/components/Sidebar/
 └── Sidebar.styles.css
 ```
 
+### Context folder structure
+
+Each context lives in its own subfolder under `src/context/`. The folder contains three files: the context definition (plain `.ts`, no JSX), the provider component, and the hook.
+
+```
+src/context/
+├── auth/
+│   ├── authContextDef.ts   ← createContext() + type (no JSX — Fast Refresh safe)
+│   ├── AuthContext.tsx      ← exports only AuthContextProvider (component)
+│   └── useAuth.ts           ← exports useAuth hook
+└── theme/
+    ├── themeContextDef.ts
+    ├── ThemeContext.tsx
+    └── useTheme.ts
+```
+
+The split is required by Vite Fast Refresh: a `.tsx` file must export only React components. Putting `createContext()` in a `.ts` file and the provider in a `.tsx` file satisfies this rule.
+
+### Page logic in a co-located hook
+
+Pages with non-trivial logic extract it into a `usePage.ts` hook in the same folder.
+
+```
+src/pages/Login/
+├── LoginPage.tsx        ← renders only, calls useLoginPage()
+├── useLoginPage.ts      ← form, mutation, submit handler
+├── Login.schema.ts      ← Zod schema + inferred type
+└── LoginPage.styles.css
+```
+
 ---
 
 ## 🧪 Tests
