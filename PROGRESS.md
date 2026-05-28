@@ -108,6 +108,10 @@
 - [x] `feature/frontend-setup` — React + TypeScript + Radix UI Themes + React Query + React Router + React Hook Form + Zod
 - [x] `feature/frontend-auth` — Login page + JWT interceptors + protected routes
 
+### Phase 2.5 — Frontend Deploy
+
+- [ ] `feature/frontend-deploy` — Azure Static Web Apps setup + GitHub Actions frontend pipeline
+
 ### Phase 3 — Core Features (backend + frontend in parallel)
 
 - [ ] `feature/clients` + `feature/frontend-clients` — Clients CRUD (Individual + Corporate)
@@ -115,6 +119,10 @@
 - [ ] `feature/credits` + `feature/frontend-credits` — Credits (Consumer + Mortgage) + Repayment Plan generation
 - [ ] `feature/installments` — Mark installment as paid + credit status check
 - [ ] `feature/activity-log` + `feature/frontend-admin` — Activity Log middleware + Employee management + Admin view
+
+### Phase 4 — Dashboards
+
+- [ ] `feature/dashboards` — Admin Dashboard + Employee Dashboard + Client Dashboard + Recharts charts
 
 ---
 
