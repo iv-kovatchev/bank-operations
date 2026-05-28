@@ -3,6 +3,15 @@
     "rewrite": "/index.html",
     "exclude": ["/assets/*", "/favicon.ico"]
   },
+  "mimeTypes": {
+    ".js": "application/javascript",
+    ".mjs": "application/javascript",
+    ".css": "text/css",
+    ".json": "application/json",
+    ".svg": "image/svg+xml",
+    ".woff": "font/woff",
+    ".woff2": "font/woff2"
+  },
   "globalHeaders": {
     "Cache-Control": "no-store"
   }
