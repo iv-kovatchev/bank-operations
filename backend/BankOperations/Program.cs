@@ -49,8 +49,26 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!
-                .Replace("{JWT_SECRET}", Environment.GetEnvironmentVariable("JWT_SECRET") ?? "")))
+                .Replace("{JWT_SECRET}", Environment.GetEnvironmentVariable("JWT_SECRET") ?? ""))),
+        RoleClaimType = "role"
     };
+});
+
+var allowedOrigins = (Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")
+    ?? builder.Configuration["Cors:AllowedOrigins"]
+    ?? "http://localhost:5173")
+    .Split(",", StringSplitOptions.RemoveEmptyEntries);
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
 });
 
 builder.Services.AddAuthorization();
@@ -90,6 +108,7 @@ using (var scope = app.Services.CreateScope())
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();

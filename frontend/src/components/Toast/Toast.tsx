@@ -1,6 +1,7 @@
 import { Callout } from '@radix-ui/themes';
-import { InfoCircledIcon, CheckCircledIcon, ExclamationTriangleIcon } from '@radix-ui/react-icons';
+import { CheckCircledIcon, ExclamationTriangleIcon } from '@radix-ui/react-icons';
 import type { ToastProps } from './Toast.types';
+import './Toast.styles.css';
 
 const toastConfig = {
   error: { color: 'red', icon: <ExclamationTriangleIcon /> },
