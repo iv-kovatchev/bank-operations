@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { jwtDecode } from 'jwt-decode';
 import { AuthContext } from './authContextDef';
 
@@ -44,6 +44,7 @@ const fetchRefreshedToken = async (): Promise<string> => {
 
 export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
   const [manualToken, setManualToken] = useState<string | null>(getStoredToken);
+  const queryClient = useQueryClient();
 
   const isAuthenticated = manualToken !== null;
 
@@ -61,10 +62,31 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
     queryKey: ['token-refresh'],
     queryFn: fetchRefreshedToken,
     refetchInterval: 14 * 60 * 1000,
+    refetchOnWindowFocus: true,
     enabled: isAuthenticated,
     staleTime: Infinity,
     retry: false,
   });
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+      try {
+        const { exp } = jwtDecode<JwtPayload>(token);
+        const expiresInMs = exp * 1000 - Date.now();
+        if (expiresInMs < 2 * 60 * 1000) {
+          queryClient.invalidateQueries({ queryKey: ['token-refresh'] });
+        }
+      } catch {
+        // malformed token — let the next API call handle it
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [queryClient]);
 
   useEffect(() => {
     if (refreshError) {
