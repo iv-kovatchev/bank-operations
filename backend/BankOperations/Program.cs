@@ -107,6 +107,7 @@ using (var scope = app.Services.CreateScope())
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
+app.UseRouting();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
