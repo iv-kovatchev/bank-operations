@@ -19,13 +19,13 @@ public class EmailService : IEmailService
 
         var fromEmail = _configuration["EMAIL_ADDRESS"]
             ?? Environment.GetEnvironmentVariable("EMAIL_ADDRESS")
-            ?? _configuration["Email:FromEmail"]!;
+            ?? throw new InvalidOperationException("EMAIL_ADDRESS is not configured.");
 
         var fromName = _configuration["Email:FromName"]!;
 
         var password = _configuration["EMAIL_PASSWORD"]
             ?? Environment.GetEnvironmentVariable("EMAIL_PASSWORD")
-            ?? _configuration["Email:Password"]!;
+            ?? throw new InvalidOperationException("EMAIL_PASSWORD is not configured.");
 
         var subject = "Your login verification code";
         var body = $"Hello {firstName}, your verification code is: {otpCode}. It expires in 5 minutes.";
