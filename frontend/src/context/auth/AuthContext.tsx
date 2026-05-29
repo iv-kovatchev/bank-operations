@@ -34,12 +34,13 @@ const fetchRefreshedToken = async (): Promise<string> => {
   const response = await fetch(`${BASE_URL}/api/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
+    body: JSON.stringify({ refreshToken: localStorage.getItem('refreshToken') }),
   });
   if (!response.ok) throw new Error('Refresh failed');
-  const { accessToken } = await response.json() as { accessToken: string };
-  localStorage.setItem('accessToken', accessToken);
-  return accessToken;
+  const data = await response.json() as { accessToken: string; refreshToken?: string };
+  localStorage.setItem('accessToken', data.accessToken);
+  if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+  return data.accessToken;
 };
 
 export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
@@ -63,6 +64,7 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
     queryFn: fetchRefreshedToken,
     refetchInterval: 14 * 60 * 1000,
     refetchOnWindowFocus: true,
+    refetchOnMount: false,
     enabled: isAuthenticated,
     staleTime: Infinity,
     retry: false,

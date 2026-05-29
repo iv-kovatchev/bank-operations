@@ -10,6 +10,7 @@ export type VerifyOtpRequest = {
 
 export type AuthResponse = {
   accessToken: string | null;
+  refreshToken: string;
   requiresOtp: boolean;
   message: string;
 };

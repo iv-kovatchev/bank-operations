@@ -8,12 +8,13 @@ export const useLogout = () => {
   const { clearToken } = useAuth();
 
   const clearAndRedirect = () => {
+    localStorage.removeItem('refreshToken');
     clearToken();
     navigate('/login');
   };
 
   return useMutation({
-    mutationFn: () => http.post<void>('/api/auth/logout', {}),
+    mutationFn: () => http.post<void>('/api/auth/logout', { refreshToken: localStorage.getItem('refreshToken') }),
     onSuccess: clearAndRedirect,
     onError: clearAndRedirect,
   });

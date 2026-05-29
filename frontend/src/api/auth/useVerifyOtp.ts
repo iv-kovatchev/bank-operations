@@ -22,7 +22,8 @@ export const useVerifyOtp = () => {
   return useMutation({
     mutationFn: (data: VerifyOtpRequest) => http.post<AuthResponse>('/api/auth/verify-otp', data),
     onSuccess: (response) => {
-      if (response.accessToken) {
+      if (response.accessToken && response.refreshToken) {
+        localStorage.setItem('refreshToken', response.refreshToken);
         setToken(response.accessToken);
         const { role } = jwtDecode<JwtPayload>(response.accessToken);
         navigate(roleDashboards[role] ?? '/login');
