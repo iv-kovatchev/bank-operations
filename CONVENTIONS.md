@@ -178,8 +178,15 @@ public class ClientService : IClientService
         if (existing != null)
             throw new ConflictException("Client with this EGN already exists.");
 
+        // One step: create AspNetUsers account with role Client, then create Client record.
+        var password = _passwordGenerator.Generate();
+        var user = new ApplicationUser { Email = dto.Email, UserName = dto.Email };
+        await _userManager.CreateAsync(user, password);
+        await _userManager.AddToRoleAsync(user, "Client");
+
         var client = new IndividualClient
         {
+            Id = Guid.Parse(user.Id),
             FirstName = dto.FirstName,
             LastName = dto.LastName,
             EGN = dto.EGN,
@@ -188,6 +195,8 @@ public class ClientService : IClientService
 
         await _clientRepository.AddAsync(client);
         await _clientRepository.SaveChangesAsync();
+
+        await _emailService.SendWelcomeEmailAsync(dto.Email, password);
 
         return new ClientResponseDto { Id = client.Id, Type = "Individual" };
     }
@@ -202,34 +211,39 @@ public class ClientService : IClientService
 Custom exceptions live in the `Exceptions/` folder. Used in services, caught by global middleware.
 
 ```csharp
-// Exceptions/NotFoundException.cs
+// Exceptions/NotFoundException.cs — two overloads: Guid id and string identifier
 public class NotFoundException : Exception
 {
     public NotFoundException(string entity, Guid id)
         : base($"{entity} with id {id} was not found.") { }
+
+    public NotFoundException(string entity, string identifier)
+        : base($"{entity} '{identifier}' was not found.") { }
 }
 
 // Exceptions/ValidationException.cs
 public class ValidationException : Exception
 {
-    public ValidationException(string message)
-        : base(message) { }
+    public ValidationException(string message) : base(message) { }
 }
 
 // Exceptions/ConflictException.cs
 public class ConflictException : Exception
 {
-    public ConflictException(string message)
-        : base(message) { }
+    public ConflictException(string message) : base(message) { }
 }
 
+// Exceptions/UnauthorizedException.cs → 401
+public class UnauthorizedException : Exception
+{
+    public UnauthorizedException(string message) : base(message) { }
+}
 ```
 
 Global middleware catches all exceptions and returns structured JSON:
 
 ```json
 { "error": "Client with id ... was not found." }
-
 ```
 
 ---
@@ -248,11 +262,13 @@ public abstract class BaseEntity
 
 ### TPT Inheritance — Clients
 
+`Client.Id` is the PK and simultaneously a FK to `AspNetUsers.Id` (1:1). `IsActive` and `CreatedAt` live on `ApplicationUser` — not duplicated here.
+
 ```csharp
-public class Client : BaseEntity
+public class Client
 {
-    public bool IsActive { get; set; } = true;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid Id { get; set; } // PK = FK → AspNetUsers.Id (1:1)
+    public ApplicationUser User { get; set; } = null!;
     public Guid CreatedByUserId { get; set; }
     public ApplicationUser CreatedByUser { get; set; } = null!;
     public ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
@@ -344,11 +360,23 @@ Always use DTOs — never return entities directly.
 
 ```csharp
 // DTOs/Clients/CreateIndividualClientDto.cs
+// Email is required — used to create the AspNetUsers account in the same transaction.
 public class CreateIndividualClientDto
 {
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string EGN { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+}
+
+// DTOs/Clients/CreateCorporateClientDto.cs
+public class CreateCorporateClientDto
+{
+    public string CompanyName { get; set; } = string.Empty;
+    public string EIK { get; set; } = string.Empty;
+    public string RepresentativeFirstName { get; set; } = string.Empty;
+    public string RepresentativeLastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
 }
 
 // DTOs/Clients/ClientResponseDto.cs
@@ -356,6 +384,7 @@ public class ClientResponseDto
 {
     public Guid Id { get; set; }
     public string Type { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
 }
@@ -371,9 +400,49 @@ public class ClientResponseDto
 var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
 // Role-based authorization
-[Authorize(Roles = "Admin")]
-[Authorize(Roles = "Employee,Admin")]
+[Authorize(Roles = "Admin")]                  // Admin only
+[Authorize(Roles = "Employee,Admin")]         // write operations
+[Authorize(Roles = "Client")]                 // client self-service (read-only)
+[Authorize(Roles = "Employee,Admin,Client")]  // any authenticated user
 
+```
+
+---
+
+## 🔌 DI Registration — Extension Methods
+
+All repository and service registrations live in `Config/`, not inline in `Program.cs`. Each layer has its own extension method.
+
+```csharp
+// Config/RepositoryExtensions.cs
+public static class RepositoryExtensions
+{
+    public static IServiceCollection AddRepositories(this IServiceCollection services)
+    {
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IOtpRepository, OtpRepository>();
+        // Add new repositories here
+        return services;
+    }
+}
+
+// Config/ServiceExtensions.cs
+public static class ServiceExtensions
+{
+    public static IServiceCollection AddServices(this IServiceCollection services)
+    {
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IOtpService, OtpService>();
+        services.AddScoped<IEmailService, EmailService>();
+        // Add new services here
+        return services;
+    }
+}
+
+// Program.cs — called as:
+builder.Services.AddRepositories();
+builder.Services.AddServices();
 ```
 
 ---
@@ -407,6 +476,132 @@ decimal interest = remainingBalance * monthlyRate;
 decimal principal = monthlyInstallment - interest;
 remainingBalance -= principal;
 
+```
+
+---
+
+## ⚛️ Frontend Conventions
+
+### Arrow functions — always
+
+All components, hooks, and utility functions use arrow functions. No `function` declarations.
+
+```tsx
+// ✅ Correct
+const MyComponent = () => <div />;
+const handleClick = () => {};
+const useMyHook = () => { ... };
+
+// ❌ Wrong
+function MyComponent() { return <div />; }
+function handleClick() {}
+```
+
+### No inline styles — ever
+
+Never use `style={{ }}`. Use Radix UI component props or `.styles.css` files.
+
+```tsx
+// ✅ Correct — Radix props
+<Box p="4" mt="2" />
+
+// ✅ Correct — CSS class from .styles.css
+<div className="sidebar-link" />
+
+// ❌ Wrong
+<Box style={{ padding: '16px' }} />
+<div style={{ color: 'red' }} />
+```
+
+### HTTP service
+
+All API calls go through `src/services/http.ts`. Never call `fetch` directly in components or hooks.
+
+```ts
+// src/services/http.ts — get, post, put, del
+// Attaches JWT from localStorage, handles 401 redirect, parses { "error": "..." } responses
+const get = async <T>(url: string): Promise<T> => { ... };
+const post = async <T>(url: string, body: unknown): Promise<T> => { ... };
+export const http = { get, post, put, del };
+```
+
+### React Query hooks — one file per hook
+
+Each domain has its hooks in `src/api/<domain>/`, one hook per file. Hooks call `http` directly.
+
+```
+src/api/auth/
+├── useLogin.ts
+├── useVerifyOtp.ts
+└── useLogout.ts
+```
+
+```ts
+// src/api/auth/useLogin.ts
+export const useLogin = () => {
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: (data: LoginRequest) => http.post<AuthResponse>('/api/auth/login', data),
+    onSuccess: (response, variables) => {
+      if (response.requiresOtp) {
+        sessionStorage.setItem('otpEmail', variables.email);
+        navigate('/verify-otp');
+      }
+    },
+  });
+};
+```
+
+### Types in `src/types/`
+
+Shared TypeScript types live in `src/types/`, named `<domain>.types.ts`.
+
+```
+src/types/
+├── auth.types.ts       → LoginRequest, VerifyOtpRequest, AuthResponse
+├── client.types.ts     → (future)
+└── account.types.ts    → (future)
+```
+
+### Component folder structure
+
+Each reusable component lives in its own folder with a component file, a types file, and an optional styles file.
+
+```
+src/components/Sidebar/
+├── Sidebar.tsx
+├── Sidebar.types.ts
+└── Sidebar.styles.css
+```
+
+### Context folder structure
+
+Each context lives in its own subfolder under `src/context/`. The folder contains three files: the context definition (plain `.ts`, no JSX), the provider component, and the hook.
+
+```
+src/context/
+├── auth/
+│   ├── authContextDef.ts   ← createContext() + type (no JSX — Fast Refresh safe)
+│   ├── AuthContext.tsx      ← exports only AuthContextProvider (component)
+│   └── useAuth.ts           ← exports useAuth hook
+└── theme/
+    ├── themeContextDef.ts
+    ├── ThemeContext.tsx
+    └── useTheme.ts
+```
+
+The split is required by Vite Fast Refresh: a `.tsx` file must export only React components. Putting `createContext()` in a `.ts` file and the provider in a `.tsx` file satisfies this rule.
+
+### Page logic in a co-located hook
+
+Pages with non-trivial logic extract it into a `usePage.ts` hook in the same folder.
+
+```
+src/pages/Login/
+├── LoginPage.tsx        ← renders only, calls useLoginPage()
+├── useLoginPage.ts      ← form, mutation, submit handler
+├── Login.schema.ts      ← Zod schema + inferred type
+└── LoginPage.styles.css
 ```
 
 ---

@@ -1,0 +1,20 @@
+.login-page {
+  flex: 1;
+  min-height: 0;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.08),
+    0 20px 40px -8px rgba(0, 0, 0, 0.2);
+}
+
+.dark .login-card {
+  box-shadow: none;
+}
+
+.login-form {
+  width: 100%;
+}

@@ -7,6 +7,8 @@ on:
   push:
     branches:
       - develop
+    paths:
+      - 'backend/**'
   workflow_dispatch:
 
 jobs:
@@ -25,9 +27,11 @@ jobs:
 
       - name: Build with dotnet
         run: dotnet build --configuration Release
+        working-directory: backend/BankOperations
 
       - name: dotnet publish
         run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
+        working-directory: backend/BankOperations
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -35,9 +39,41 @@ jobs:
           name: .net-app
           path: ${{env.DOTNET_ROOT}}/myapp
 
-  deploy:
+  migrate:
     runs-on: ubuntu-latest
     needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+        working-directory: backend/BankOperations
+
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Restore dependencies
+        run: dotnet restore backend/BankOperations/BankOperations.csproj
+
+      - name: Run migrations
+        run: |
+          for i in 1 2 3 4 5; do
+            dotnet ef database update --project backend/BankOperations && break
+            echo "Attempt $i failed, retrying in 15s..."
+            sleep 15
+          done
+        env:
+          ConnectionStrings__DefaultConnection: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: migrate
     permissions:
       id-token: write #This is required for requesting the JWT
       contents: read #This is required for actions/checkout

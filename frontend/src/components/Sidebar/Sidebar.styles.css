@@ -1,0 +1,17 @@
+.sidebar {
+  border-right: 1px solid var(--gray-6);
+  overflow-y: auto;
+}
+
+.sidebar-link {
+  text-decoration: none;
+  border-radius: var(--radius-2);
+}
+
+.sidebar-link:hover {
+  background: var(--green-3);
+}
+
+.sidebar-link-active {
+  background: var(--green-4);
+}

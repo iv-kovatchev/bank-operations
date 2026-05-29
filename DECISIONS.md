@@ -23,6 +23,10 @@
 **Decision:** Access Token (15 min lifetime) + Refresh Token stored in HttpOnly cookie.
 **Why:** Standard secure approach for REST API + SPA architecture. Short-lived access token limits damage if intercepted. HttpOnly cookie prevents JS access to refresh token (XSS protection).
 
+### Two-Factor Authentication (2FA)
+**Decision:** Implement 2FA with OTP code sent via email on every login.
+**Why:** Banking system requires higher security. If password is stolen, attacker still cannot login without access to the email. ASP.NET Identity has built-in 2FA support making implementation straightforward (~1-2 extra days of work).
+
 ### CreditServices table
 **Decision:** Interest rate, max amount, and max term are stored in a `CreditServices` table, not hardcoded.
 **Why:** The assignment states these values are determined by credit type. Storing them in DB allows changes without redeployment.
@@ -35,9 +39,9 @@
 **Decision:** Every employee action is recorded in an `ActivityLogs` table.
 **Why:** Admin requirement — admins must be able to see who did what and when. Implemented as a service called from every operation.
 
-### Chakra UI for frontend
-**Decision:** Chakra UI instead of Tailwind CSS or MUI.
-**Why:** Provides ready-made accessible components suitable for an admin-style banking application. Faster development than Tailwind (no need to compose utilities), more flexible than MUI.
+### Radix UI Themes for frontend
+**Decision:** `@radix-ui/themes` instead of Chakra UI, Tailwind CSS, or MUI.
+**Why:** Radix Themes provides a complete, accessible design system with dark mode, custom color palettes (including P3 wide-gamut), and composable layout primitives. It is framework-agnostic and integrates cleanly with Vite + React 19. Chakra UI has React 19 compatibility issues at the time of setup.
 
 ### React Query for server state
 **Decision:** React Query for all server data fetching and caching.
@@ -60,6 +64,116 @@
 **Why:** Swagger exposes the full API surface. Keeping it off in production (Azure) reduces the attack surface and avoids leaking internal endpoint structure.
 
 ---
+
+## 2026-05-14 — ci-cd
+
+### Azure OIDC Federated Identity instead of client secret
+**Decision:** The GitHub Actions workflow authenticates to Azure using OIDC Federated Identity (`azure/login@v2` with `client-id`, `tenant-id`, `subscription-id` secrets) rather than a long-lived client secret or publish profile.
+**Why:** Federated credentials are short-lived tokens issued per workflow run — no secret rotation needed and no risk of a leaked long-lived credential. The `id-token: write` permission is scoped only to the deploy job, not the build job.
+
+### Path filter on CI trigger
+**Decision:** The workflow triggers only when files under `backend/**` are changed.
+**Why:** Frontend changes, docs updates, and configuration files should not trigger a backend deployment. Keeps pipeline runs fast and avoids unnecessary Azure deployments for unrelated commits.
+
+### Two-job pipeline (build + deploy)
+**Decision:** Build and deploy are split into separate jobs with artifact hand-off via `actions/upload-artifact` / `actions/download-artifact`.
+**Why:** Standard GitHub Actions pattern — isolates the build environment from the deploy environment, allows the deploy job to be re-run independently if a deploy fails without rebuilding, and makes permissions minimal per job (`contents: read` on build, `id-token: write` on deploy).
+
+---
+
+## 2026-05-15 — Domain model revisions
+
+### Three roles: Admin, Employee, Client
+**Decision:** `AspNetUsers` has three roles: Admin, Employee, and Client. Clients are users with role `Client` and read-only access to their own data.
+**Why:** The original design excluded clients from the system entirely. Adding a Client role with JWT auth allows the same API to serve client-facing endpoints without a separate application. Role-based authorization (`[Authorize(Roles = "...")]`) keeps the permission model simple and explicit.
+
+### Client registration in one step (Employee/Admin creates AspNetUsers + Client record atomically)
+**Decision:** When an Employee or Admin registers a new client, a single service call creates the `AspNetUsers` account (role=Client), the `Client`/`IndividualClient` or `CorporateClient` record, and sends a welcome email with the generated password — all in one transaction.
+**Why:** A two-step flow (create user, then create client) would allow an inconsistent state where a client user exists without a Client record, or vice versa. A single atomic operation prevents this. It also reduces the UI to one form, which is better UX for employees.
+
+### Clients table: ClientId is PK and FK → AspNetUsers (1:1); Status and CreatedAt removed
+**Decision:** `Clients.ClientId` is both the primary key and a foreign key pointing to `AspNetUsers.Id`. `Status` and `CreatedAt` columns are removed from the `Clients` table.
+**Why:** Every client IS an AspNetUsers account — there is no meaningful difference between `Client.Id` and `ApplicationUser.Id`. Using the user's Id as the PK eliminates a redundant column and enforces the 1:1 constraint at the database level. `IsActive` and `CreatedAt` already exist on `AspNetUsers` — duplicating them in `Clients` would create two sources of truth.
+
+### RepaymentInstallments: TotalAmount and IsPaid removed (derived values)
+**Decision:** `TotalAmount` and `IsPaid` columns are removed from `RepaymentInstallments`. `TotalAmount` is computed as `PrincipalPart + InterestPart`; `IsPaid` is determined by `PaidAt != null`.
+**Why:** Storing values that can be derived from other columns risks inconsistency — if `PrincipalPart` is ever corrected, `TotalAmount` could silently become stale. Computed properties on the entity class are sufficient and always consistent.
+
+---
+
+## 2026-05-28 — feature/auth
+
+### Startup seeding via DataSeeder
+**Decision:** Roles and the initial admin account are seeded at application startup inside `Program.cs` using `app.Services.CreateScope()`, not via a migration or a one-off script.
+**Why:** Migrations run in CI before the app boots and have no access to `UserManager` / `RoleManager`. A startup seeder runs in the full DI context, making it the only practical place to use Identity APIs. All seed operations are idempotent (existence-checked before insert), so re-running on every startup is safe with no performance penalty beyond a few DB reads.
+
+### Two-step login flow (password → OTP → tokens)
+**Decision:** Login is split into two HTTP calls: `POST /api/auth/login` validates credentials and emails an OTP; `POST /api/auth/verify-otp` validates the OTP and issues the JWT access token + refresh token.
+**Why:** Mandatory 2FA on every login. Combining both steps in one call would require issuing tokens before OTP confirmation, which defeats the purpose of 2FA. Splitting them allows the frontend to show an OTP entry screen without holding any credentials in memory between steps.
+
+### Refresh token delivered via HttpOnly cookie only — `[JsonIgnore]` on DTO
+**Decision:** `AuthResultDto.RefreshToken` is annotated `[JsonIgnore]`. The refresh token is set as an HttpOnly cookie in `AuthController.VerifyOtpAsync` and never appears in the response body.
+**Why:** A refresh token in the response body is accessible to JavaScript, making it vulnerable to XSS. An HttpOnly cookie is invisible to JS. The DTO field still exists so the service layer can pass the value up to the controller cleanly without breaking the layer boundary.
+
+### OTP invalidated before generating a new one
+**Decision:** `OtpService.GenerateAndSaveOtpAsync` calls `InvalidateAllForUserAsync` before saving the new OTP.
+**Why:** Without this, a user who requests a second OTP still has their first (valid) OTP in the database. An attacker who intercepted the first code could use it even after a second send. Invalidating all previous codes on each new request closes this window.
+
+### SmtpClient instead of SendGrid
+**Decision:** `EmailService` uses `System.Net.Mail.SmtpClient` with SMTP credentials from env vars, not the SendGrid SDK.
+**Why:** The project is in early development and SendGrid requires account setup, API key management, and an external dependency. `SmtpClient` works with any SMTP provider (Gmail, Outlook, etc.) and has zero dependencies. Can be swapped for SendGrid later by replacing `EmailService` behind `IEmailService` without touching any other code.
+
+### DI registrations extracted to extension methods in `Config/`
+**Decision:** All `builder.Services.AddScoped<...>()` calls for repositories and services live in `Config/RepositoryExtensions.cs` and `Config/ServiceExtensions.cs`, invoked from `Program.cs` as `builder.Services.AddRepositories()` and `builder.Services.AddServices()`.
+**Why:** `Program.cs` grows long quickly as features are added. Grouping registrations by layer in extension methods keeps `Program.cs` readable and avoids merge conflicts when multiple features add registrations at the same time.
+
+---
+
+## 2026-05-28 — feature/frontend-setup
+
+### Native fetch wrapper instead of Axios
+**Decision:** HTTP calls use a thin `src/services/http.ts` wrapper around the native `fetch` API instead of Axios.
+**Why:** Axios adds ~14 KB and no meaningful benefit when `fetch` is universally supported. The wrapper handles JWT injection, 401 redirect, and error parsing in ~50 lines, covering all project needs without a dependency.
+
+### JWT role claim as plain `"role"` string
+**Decision:** `TokenService.cs` emits the role claim with key `"role"` instead of `ClaimTypes.Role` (which expands to the long Microsoft schema URI).
+**Why:** `ClaimTypes.Role` produces `"http://schemas.microsoft.com/ws/2008/06/identity/claims/role"` as the JWT key, requiring complex decoding on the frontend. A plain `"role"` key is readable, standard (matches OAuth2/OIDC conventions), and works with `jwtDecode<{ role: string }>()` directly. `TokenValidationParameters.RoleClaimType = "role"` must be set in `Program.cs` to keep `[Authorize(Roles)]` working on the backend.
+
+### Auth hooks call http directly — no intermediate service layer
+**Decision:** React Query mutation hooks in `src/api/auth/` call `http.post()` directly; there is no separate `authService.ts` or `authApi.ts` object between the hook and the HTTP layer.
+**Why:** An intermediate service layer adds a file and a function call with no benefit for simple CRUD mutations. The hook already encapsulates the mutation logic (`onSuccess`, `onError`, navigation). Adding a service layer would split logic that belongs together across two files.
+
+### Each React Query hook in its own file
+**Decision:** Auth hooks are split into `useLogin.ts`, `useVerifyOtp.ts`, `useLogout.ts` — one file per hook — rather than a single `authApi.queries.ts`.
+**Why:** A single queries file becomes a growing list of unrelated exports. Individual files are easier to locate, import selectively, and review in isolation. The pattern scales to other domains (clients, accounts, credits) without producing large barrel files.
+
+### No inline styles — CSS files or Radix props only
+**Decision:** `style={{ }}` inline props are banned. Styling must use Radix UI component props (layout, color, size, spacing) or CSS classes defined in co-located `.styles.css` files.
+**Why:** Inline styles bypass the Radix CSS variable system (dark mode, theming), are not reusable, and mix presentation with structure. Co-located `.styles.css` files keep styles close to the component without polluting JSX.
+
+### Shared types in `src/types/`
+**Decision:** TypeScript types shared across multiple files live in `src/types/` (e.g. `auth.types.ts`), not co-located with the API hook files that use them.
+**Why:** Types are referenced by hooks, components, and pages. Placing them in `src/api/auth/` would create import paths like `../../api/auth/authApi.types` from a component — coupling the component to the API layer's folder structure. `src/types/` is a neutral location accessible from anywhere.
+
+---
+
+## 2026-05-29 — feature/frontend-auth
+
+### Context split: definition file + provider file
+**Decision:** Each context is split into two files: `*ContextDef.ts` (exports the context object and its type, no JSX) and `*Context.tsx` (exports only the provider component).
+**Why:** Vite Fast Refresh requires that a `.tsx` file exports only React components. Exporting both `AuthContext` (a non-component value) and `AuthContextProvider` (a component) from the same file breaks HMR. Separating them satisfies the rule without changing the public API — consumers import the hook from `useAuth.ts` and the provider from `AuthContext.tsx`.
+
+### Proactive token refresh via React Query instead of reactive 401 retry
+**Decision:** Access token is refreshed proactively every 14 minutes using `useQuery` inside `AuthContextProvider`, not by intercepting 401 responses in `http.ts`.
+**Why:** A reactive approach (catch 401 → refresh → retry) requires queueing concurrent failed requests and retrying them, which adds significant complexity to the HTTP layer. A proactive approach with a 14-minute interval (token expires in 15 minutes) keeps `http.ts` simple and eliminates the retry entirely. The `queryFn` stores the new token in `localStorage` directly (external system sync — correct place), so no `setState` is called in a `useEffect`, avoiding the cascading render lint warning.
+
+### Route-based single-point layout
+**Decision:** `PageLayout` and the public header shell are applied via nested layout routes (`AuthenticatedLayout`, `PublicLayout`) defined once in `src/routes/index.tsx`, not imported in individual page components.
+**Why:** Importing `PageLayout` in every page creates repetitive boilerplate and a risk of pages accidentally missing the layout. A single layout route wraps all pages in a group, making the layout implicit and guaranteed. Adding a new authenticated page only requires adding a `<Route>` — no layout import needed.
+
+### ThemeContext owns Radix appearance
+**Decision:** `ThemeContextProvider` manages `'light' | 'dark'` state. `App.tsx` reads from `useTheme()` and passes it to the Radix `<Theme appearance={theme}>`. Theme is persisted to `localStorage`.
+**Why:** Radix UI's `Theme` component controls the appearance of all child components via CSS variables. Having a single context own the theme state and persist it ensures consistency across the app and across page reloads without flash of wrong theme.
 
 ## Template for new decisions
 
