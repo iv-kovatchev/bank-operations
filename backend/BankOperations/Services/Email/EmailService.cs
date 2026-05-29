@@ -17,14 +17,14 @@ public class EmailService : IEmailService
         var host = _configuration["Email:SmtpHost"]!;
         var port = int.Parse(_configuration["Email:SmtpPort"]!);
 
-        var fromEmail = _configuration["Email:FromEmail"]
-            ?? _configuration["EMAIL_ADDRESS"]
+        var fromEmail = _configuration["EMAIL_ADDRESS"]
+            ?? _configuration["Email:FromEmail"]
             ?? throw new InvalidOperationException("EMAIL_ADDRESS is not configured.");
 
         var fromName = _configuration["Email:FromName"]!;
 
-        var password = _configuration["Email:Password"]
-            ?? _configuration["EMAIL_PASSWORD"]
+        var password = _configuration["EMAIL_PASSWORD"]
+            ?? _configuration["Email:Password"]
             ?? throw new InvalidOperationException("EMAIL_PASSWORD is not configured.");
 
         var subject = "Your login verification code";
