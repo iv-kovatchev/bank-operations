@@ -1,4 +1,4 @@
-import { Outlet, Route, Routes } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { Flex } from '@radix-ui/themes';
 import PublicRoutes from './PublicRoutes';
 import AdminRoutes from './AdminRoutes';
@@ -12,6 +12,15 @@ import AdminDashboard from '../pages/Admin/Dashboard/AdminDashboard';
 import EmployeeDashboard from '../pages/Employee/Dashboard/EmployeeDashboard';
 import ClientDashboard from '../pages/Client/Dashboard/ClientDashboard';
 import NotFound from '../pages/NotFound/NotFound';
+import { useAuth } from '../context/auth/useAuth';
+
+const RootRedirect = () => {
+  const { isAuthenticated, role } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (role === 'Admin') return <Navigate to="/admin/dashboard" replace />;
+  if (role === 'Employee') return <Navigate to="/employee/dashboard" replace />;
+  return <Navigate to="/client/dashboard" replace />;
+};
 
 const PublicLayout = () => (
   <Flex direction="column" height="100vh">
@@ -28,6 +37,8 @@ const AuthenticatedLayout = () => (
 
 const AppRoutes = () => (
   <Routes>
+    <Route path="/" element={<RootRedirect />} />
+
     <Route element={<PublicLayout />}>
       <Route element={<PublicRoutes />}>
         <Route path="/login" element={<LoginPage />} />
