@@ -5,7 +5,7 @@ import './LoginPage.styles.css';
 
 const LoginPage = () => {
   const { form, onSubmit, isPending, error } = useLoginPage();
-  const { register, handleSubmit, formState: { errors } } = form;
+  const { register, handleSubmit, formState: { errors, isValid } } = form;
 
   return (
     <Flex align="center" justify="center" className="login-page">
@@ -13,8 +13,8 @@ const LoginPage = () => {
         <Flex direction="column" gap="5">
 
           <Flex direction="column" gap="1">
-            <Heading size="6">Sign in</Heading>
-            <Text size="2" color="gray">
+            <Heading size="6" align="center">Sign in</Heading>
+            <Text size="2" color="gray" align="center">
               Bank Operations System
             </Text>
           </Flex>
@@ -58,8 +58,8 @@ const LoginPage = () => {
                 )}
               </Flex>
 
-              <Button type="submit" loading={isPending} disabled={isPending}>
-                Sign in
+              <Button type="submit" disabled={!isValid || isPending}>
+                Login
               </Button>
 
             </Flex>

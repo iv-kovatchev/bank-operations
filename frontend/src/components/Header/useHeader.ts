@@ -4,6 +4,7 @@ import { useAuth } from '../../context/auth/useAuth';
 import { useLogout } from '../../api/auth/useLogout';
 
 type JwtPayload = {
+  'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'?: string;
   unique_name?: string;
   name?: string;
   email?: string;
@@ -37,7 +38,7 @@ export const useHeader = (isAuthenticated: boolean) => {
   if (isAuthenticated && accessToken) {
     try {
       const decoded = jwtDecode<JwtPayload>(accessToken);
-      displayName = decoded.unique_name ?? decoded.name ?? decoded.email ?? '';
+      displayName = decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ?? decoded.unique_name ?? decoded.name ?? decoded.email ?? '';
       initials = getInitials(displayName);
       role = decoded.role;
       roleColor = roleColors[role] ?? 'gray';

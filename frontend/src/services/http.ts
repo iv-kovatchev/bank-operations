@@ -9,15 +9,25 @@ const getHeaders = (): HeadersInit => {
 };
 
 const handleResponse = async <T>(response: Response): Promise<T> => {
-  if (response.status === 401) {
-    localStorage.clear();
-    window.location.href = '/login';
-    return Promise.reject(new Error('Unauthorized'));
-  }
-
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(error.error ?? response.statusText);
+    const body = await response.json().catch(() => null);
+    let message: string;
+    if (body?.error) {
+      message = body.error;
+    } else if (body?.errors) {
+      message = (Object.values(body.errors) as string[][]).flat().join(', ');
+    } else if (body?.title) {
+      message = body.title;
+    } else {
+      message = 'Something went wrong';
+    }
+
+    if (response.status === 401 && window.location.pathname !== '/login') {
+      localStorage.clear();
+      window.location.href = '/login';
+    }
+
+    throw new Error(message);
   }
 
   return response.json() as Promise<T>;

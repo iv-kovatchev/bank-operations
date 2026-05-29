@@ -12,6 +12,11 @@
   border-bottom: 1px solid var(--gray-6);
 }
 
+.header-brand-link {
+  text-decoration: none;
+  color: inherit;
+}
+
 .header-logo {
   height: 28px;
   width: auto;

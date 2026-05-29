@@ -21,8 +21,8 @@ public class TokenService : ITokenService
 
     public string GenerateAccessToken(ApplicationUser user, IList<string> roles)
     {
-        var secret = _configuration["Jwt:Secret"]!
-            .Replace("{JWT_SECRET}", Environment.GetEnvironmentVariable("JWT_SECRET") ?? "");
+        var secret = Environment.GetEnvironmentVariable("JWT_SECRET")
+            ?? _configuration["Jwt:Secret"];
 
         if (string.IsNullOrEmpty(secret))
             throw new InvalidOperationException("JWT secret is not configured.");

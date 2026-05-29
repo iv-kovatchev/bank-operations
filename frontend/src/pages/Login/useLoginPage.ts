@@ -8,6 +8,7 @@ export const useLoginPage = () => {
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
+    mode: 'onChange',
   });
 
   const onSubmit = (data: LoginFormData) => login(data);

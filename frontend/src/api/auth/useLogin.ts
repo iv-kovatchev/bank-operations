@@ -14,8 +14,5 @@ export const useLogin = () => {
         navigate('/verify-otp');
       }
     },
-    onError: (error: Error) => {
-      console.error('Login failed:', error.message);
-    },
   });
 };

@@ -1,5 +1,6 @@
 import { Avatar, Box, DropdownMenu, Flex, IconButton, Text } from '@radix-ui/themes';
 import { SunIcon, MoonIcon } from '@radix-ui/react-icons';
+import { Link } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import { useHeader } from './useHeader';
 import type { HeaderProps } from './Header.types';
@@ -12,10 +13,12 @@ const Header = ({ isAuthenticated }: HeaderProps) => {
     <header className="app-header">
       <Flex align="center" justify="between" px="4" height="100%">
 
-        <Flex align="center" gap="2">
-          <img src={logo} alt="Bank Operations" className="header-logo" />
-          <Text size="4" weight="bold">Bank Operations</Text>
-        </Flex>
+        <Link to="/" className="header-brand-link">
+          <Flex align="center" gap="2">
+            <img src={logo} alt="Bank Operations" className="header-logo" />
+            <Text size="4" weight="bold">Bank Operations</Text>
+          </Flex>
+        </Link>
 
         <Flex align="center" gap="5">
           {isAuthenticated && (
