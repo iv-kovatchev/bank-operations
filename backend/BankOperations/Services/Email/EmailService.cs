@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Mail;
 
 namespace BankOperations.Services.Email;
@@ -17,13 +17,15 @@ public class EmailService : IEmailService
         var host = _configuration["Email:SmtpHost"]!;
         var port = int.Parse(_configuration["Email:SmtpPort"]!);
 
-        var fromEmail = _configuration["Email:FromEmail"]!
-            .Replace("{EMAIL_ADDRESS}", Environment.GetEnvironmentVariable("EMAIL_ADDRESS") ?? "");
+        var fromEmail = _configuration["EMAIL_ADDRESS"]
+            ?? Environment.GetEnvironmentVariable("EMAIL_ADDRESS")
+            ?? _configuration["Email:FromEmail"]!;
 
         var fromName = _configuration["Email:FromName"]!;
 
-        var password = _configuration["Email:Password"]!
-            .Replace("{EMAIL_PASSWORD}", Environment.GetEnvironmentVariable("EMAIL_PASSWORD") ?? "");
+        var password = _configuration["EMAIL_PASSWORD"]
+            ?? Environment.GetEnvironmentVariable("EMAIL_PASSWORD")
+            ?? _configuration["Email:Password"]!;
 
         var subject = "Your login verification code";
         var body = $"Hello {firstName}, your verification code is: {otpCode}. It expires in 5 minutes.";
