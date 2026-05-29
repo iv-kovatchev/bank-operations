@@ -175,6 +175,22 @@
 **Decision:** `ThemeContextProvider` manages `'light' | 'dark'` state. `App.tsx` reads from `useTheme()` and passes it to the Radix `<Theme appearance={theme}>`. Theme is persisted to `localStorage`.
 **Why:** Radix UI's `Theme` component controls the appearance of all child components via CSS variables. Having a single context own the theme state and persist it ensures consistency across the app and across page reloads without flash of wrong theme.
 
+## 2026-05-29 — feature/frontend-deploy
+
+### Refresh token in localStorage instead of HttpOnly cookie
+**Decision:** Refresh token stored in localStorage instead of HttpOnly cookie.
+**Why:** Frontend (azurestaticapps.net) and backend (azurewebsites.net) are on different domains. Browsers block cross-site cookies (SameSite policy), so the HttpOnly cookie was never sent with refresh requests. localStorage works cross-domain.
+
+### Email and JWT config via IConfiguration
+**Decision:** Email and JWT secrets read via `_configuration["KEY"]` first (covers Azure App Settings), then fallback to nested config keys (covers local appsettings.Development.json).
+**Why:** Azure App Settings are injected into IConfiguration directly as flat keys. Reading `_configuration["EMAIL_ADDRESS"]` works in Azure; `_configuration["Email:FromEmail"]` works locally. Order matters — Azure key must be checked first.
+
+### appsettings.Development.json for local secrets
+**Decision:** Local credentials stored in `appsettings.Development.json`, added to `.gitignore`.
+**Why:** Keeps secrets out of source control while allowing local development without environment variables.
+
+---
+
 ## Template for new decisions
 
 ```markdown

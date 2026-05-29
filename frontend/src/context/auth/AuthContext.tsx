@@ -11,14 +11,7 @@ type JwtPayload = {
 };
 
 const getStoredToken = (): string | null => {
-  const token = localStorage.getItem('accessToken');
-  if (!token) return null;
-  try {
-    const { exp } = jwtDecode<JwtPayload>(token);
-    return exp * 1000 > Date.now() ? token : null;
-  } catch {
-    return null;
-  }
+  return localStorage.getItem('accessToken');
 };
 
 const getRoleFromToken = (token: string | null): string | null => {
@@ -78,7 +71,7 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
       try {
         const { exp } = jwtDecode<JwtPayload>(token);
         const expiresInMs = exp * 1000 - Date.now();
-        if (expiresInMs < 2 * 60 * 1000) {
+        if (expiresInMs < 2 * 60 * 1000 || expiresInMs < 0) {
           queryClient.invalidateQueries({ queryKey: ['token-refresh'] });
         }
       } catch {

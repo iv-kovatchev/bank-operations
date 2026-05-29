@@ -110,7 +110,16 @@
 
 ### Phase 2.5 — Frontend Deploy
 
-- [ ] `feature/frontend-deploy` — Azure Static Web Apps setup + GitHub Actions frontend pipeline
+- [x] `feature/frontend-deploy` — Azure Static Web Apps setup + GitHub Actions frontend pipeline — `2026-05-29`
+  - Azure Static Web Apps created + GitHub Actions pipeline
+  - `staticwebapp.config.json` with navigationFallback
+  - CORS configured on backend with `ALLOWED_ORIGINS` env var
+  - Refresh token moved from HttpOnly cookie to localStorage (cross-domain fix)
+  - Auto-logout fix: `visibilitychange` listener + `refetchOnWindowFocus: true`
+  - Email configuration fixed for both local (appsettings.Development.json) and Azure (App Settings)
+  - Root redirect: unauthenticated → /login, authenticated → role-based dashboard
+  - Login page: disabled button when form invalid, centered title, schema validation
+  - Header: username outside dropdown, logo as link to home
 
 ### Phase 3 — Core Features (backend + frontend in parallel)
 

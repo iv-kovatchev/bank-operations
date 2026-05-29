@@ -606,28 +606,36 @@ src/pages/Login/
 
 ---
 
-## 🧪 Tests
+## 🧪 Testing Strategy
 
-```csharp
-public class ClientServiceTests
-{
-    private readonly Mock<IClientRepository> _mockRepo;
-    private readonly ClientService _service;
+Every backend feature must include unit tests on 3 levels and integration tests.
 
-    public ClientServiceTests()
-    {
-        _mockRepo = new Mock<IClientRepository>();
-        _service = new ClientService(_mockRepo.Object);
-    }
+### Unit Tests
+Project: `BankOperations.Tests/Unit/`
+Use xUnit + Moq. Follow Arrange/Act/Assert. Test happy path and error cases.
 
-    [Fact]
-    public async Task CreateIndividualClient_ShouldReturnDto_WhenValid()
-    {
-        // Arrange
-        // Act
-        // Assert
-    }
-}
+#### Controller level
+- File: `[Feature]ControllerTests.cs`
+- Mock the service
+- Test HTTP response codes, response body, and that correct service method is called
+- Test that unauthorized requests return 401
 
-```
+#### Service level
+- File: `[Feature]ServiceTests.cs`
+- Mock the repository and any other dependencies
+- Test business logic, exception throwing (NotFoundException, ConflictException, etc.)
+- Test all branches of the logic
+
+#### Repository level
+- File: `[Feature]RepositoryTests.cs`
+- Use in-memory DbContext or SQLite
+- Test that queries return correct data
+- Test that Add/Update/Delete persist correctly
+
+### Integration Tests
+Project: `BankOperations.Tests/Integration/`
+File naming: `[Feature]IntegrationTests.cs`
+Use WebApplicationFactory with test database.
+Test full HTTP pipeline: request → middleware → controller → service → repository → response.
+Test authentication (401 without token) and authorization (403 wrong role).
 
