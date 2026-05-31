@@ -157,7 +157,7 @@ public class CorporateClientServiceTests
         var service = CreateService();
 
         // Act & Assert
-        await Should.ThrowAsync<NotFoundException>(() => service.UpdateAsync(id, dto));
+        await Should.ThrowAsync<NotFoundException>(() => service.UpdateAsync(id, dto, Guid.NewGuid(), false));
     }
 
     [Fact]
@@ -187,7 +187,7 @@ public class CorporateClientServiceTests
         var service = CreateService();
 
         // Act & Assert
-        await Should.ThrowAsync<NotFoundException>(() => service.UpdateAsync(id, dto));
+        await Should.ThrowAsync<NotFoundException>(() => service.UpdateAsync(id, dto, Guid.NewGuid(), false));
     }
 
     [Fact]
@@ -232,12 +232,83 @@ public class CorporateClientServiceTests
         var service = CreateService();
 
         // Act
-        var result = await service.UpdateAsync(id, dto);
+        var result = await service.UpdateAsync(id, dto, Guid.NewGuid(), isAdmin: true);
 
         // Assert
         result.ShouldNotBeNull();
         result.CompanyName.ShouldBe(dto.CompanyName);
         result.RepresentativeFirstName.ShouldBe(dto.RepresentativeFirstName);
         result.RepresentativeLastName.ShouldBe(dto.RepresentativeLastName);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ThrowsUnauthorizedException_WhenEmployeeUpdatesOthersClient()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        var requestingUserId = Guid.NewGuid();
+        var dto = new UpdateCorporateClientDto
+        {
+            CompanyName = "New Corp",
+            RepresentativeFirstName = "Jane",
+            RepresentativeLastName = "Smith",
+            Email = "jane@example.com"
+        };
+        var corporate = new CorporateClient
+        {
+            ClientId = id,
+            CreatedByUserId = ownerId,
+            CompanyName = "Old Corp",
+            EIK = "123456789",
+            RepresentativeFirstName = "John",
+            RepresentativeLastName = "Doe",
+            User = new ApplicationUser { Id = id, Email = "corp@example.com", UserName = "corp@example.com" }
+        };
+
+        _repoMock.Setup(r => r.GetByIdWithDetailsAsync(id)).ReturnsAsync(corporate);
+
+        var service = CreateService();
+
+        // Act & Assert
+        await Should.ThrowAsync<UnauthorizedException>(() => service.UpdateAsync(id, dto, requestingUserId, isAdmin: false));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_Succeeds_WhenAdminUpdatesAnyClient()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var dto = new UpdateCorporateClientDto
+        {
+            CompanyName = "New Corp",
+            RepresentativeFirstName = "Jane",
+            RepresentativeLastName = "Smith",
+            Email = "jane@example.com"
+        };
+        var user = new ApplicationUser { Id = id, Email = "corp@example.com", UserName = "corp@example.com", FirstName = "John", LastName = "Doe" };
+        var corporate = new CorporateClient
+        {
+            ClientId = id,
+            CreatedByUserId = Guid.NewGuid(),
+            CompanyName = "Old Corp",
+            EIK = "123456789",
+            RepresentativeFirstName = "John",
+            RepresentativeLastName = "Doe",
+            User = user
+        };
+
+        _repoMock.Setup(r => r.GetByIdWithDetailsAsync(id)).ReturnsAsync(corporate);
+        _userManagerMock.Setup(u => u.SetEmailAsync(user, dto.Email)).ReturnsAsync(IdentityResult.Success);
+        _userManagerMock.Setup(u => u.SetUserNameAsync(user, dto.Email)).ReturnsAsync(IdentityResult.Success);
+
+        var service = CreateService();
+
+        // Act — admin with a completely different userId should succeed
+        var result = await service.UpdateAsync(id, dto, Guid.NewGuid(), isAdmin: true);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.CompanyName.ShouldBe(dto.CompanyName);
     }
 }

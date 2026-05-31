@@ -71,12 +71,15 @@ public class IndividualClientService : IIndividualClientService
         return ClientMapper.ToDto(client);
     }
 
-    public async Task<IndividualClientResponseDto> UpdateAsync(Guid id, UpdateIndividualClientDto dto)
+    public async Task<IndividualClientResponseDto> UpdateAsync(Guid id, UpdateIndividualClientDto dto, Guid requestingUserId, bool isAdmin)
     {
         var client = await _clientRepository.GetByIdWithDetailsAsync(id);
 
         if (client is not IndividualClient ic)
             throw new NotFoundException("IndividualClient", id);
+
+        if (!isAdmin && ic.CreatedByUserId != requestingUserId)
+            throw new UnauthorizedException("You can only update clients you have created.");
 
         ic.FirstName = dto.FirstName;
         ic.LastName = dto.LastName;

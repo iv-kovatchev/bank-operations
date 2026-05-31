@@ -5,6 +5,6 @@ namespace BankOperations.Services.Clients;
 public interface IClientService
 {
     Task<ClientResponseDto> GetClientByIdAsync(Guid id);
-    Task<IEnumerable<ClientResponseDto>> GetAllClientsAsync();
+    Task<IEnumerable<ClientResponseDto>> GetAllClientsAsync(Guid? createdByUserId = null);
     Task DeactivateClientAsync(Guid id);
 }

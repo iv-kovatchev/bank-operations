@@ -39,10 +39,13 @@ public class ClientRepository : IClientRepository
             .Include(c => c.User)
             .FirstOrDefaultAsync(c => c.ClientId == id);
 
-    public async Task<IEnumerable<Client>> GetAllWithDetailsAsync()
-        => await _context.Clients
-            .Include(c => c.User)
-            .ToListAsync();
+    public async Task<IEnumerable<Client>> GetAllWithDetailsAsync(Guid? createdByUserId = null)
+    {
+        var query = _context.Clients.Include(c => c.User).AsQueryable();
+        if (createdByUserId.HasValue)
+            query = query.Where(c => c.CreatedByUserId == createdByUserId.Value);
+        return await query.ToListAsync();
+    }
 
     public async Task<bool> ExistsByEmailAsync(string email)
         => await _context.Users.AnyAsync(u => u.Email == email);

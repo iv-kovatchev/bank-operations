@@ -31,7 +31,10 @@ public class ClientsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var clients = await _clientService.GetAllClientsAsync();
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var role = User.FindFirstValue("role");
+        var createdByUserId = role == "Employee" ? userId : (Guid?)null;
+        var clients = await _clientService.GetAllClientsAsync(createdByUserId);
         return Ok(clients);
     }
 
@@ -61,14 +64,18 @@ public class ClientsController : ControllerBase
     [HttpPut("individual/{id:guid}")]
     public async Task<IActionResult> UpdateIndividual(Guid id, [FromBody] UpdateIndividualClientDto dto)
     {
-        var result = await _individualClientService.UpdateAsync(id, dto);
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var isAdmin = User.IsInRole("Admin");
+        var result = await _individualClientService.UpdateAsync(id, dto, userId, isAdmin);
         return Ok(result);
     }
 
     [HttpPut("corporate/{id:guid}")]
     public async Task<IActionResult> UpdateCorporate(Guid id, [FromBody] UpdateCorporateClientDto dto)
     {
-        var result = await _corporateClientService.UpdateAsync(id, dto);
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var isAdmin = User.IsInRole("Admin");
+        var result = await _corporateClientService.UpdateAsync(id, dto, userId, isAdmin);
         return Ok(result);
     }
 

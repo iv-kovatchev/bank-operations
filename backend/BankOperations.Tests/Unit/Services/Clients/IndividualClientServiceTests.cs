@@ -152,7 +152,7 @@ public class IndividualClientServiceTests
         var service = CreateService();
 
         // Act & Assert
-        await Should.ThrowAsync<NotFoundException>(() => service.UpdateAsync(id, dto));
+        await Should.ThrowAsync<NotFoundException>(() => service.UpdateAsync(id, dto, Guid.NewGuid(), false));
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class IndividualClientServiceTests
         var service = CreateService();
 
         // Act & Assert
-        await Should.ThrowAsync<NotFoundException>(() => service.UpdateAsync(id, dto));
+        await Should.ThrowAsync<NotFoundException>(() => service.UpdateAsync(id, dto, Guid.NewGuid(), false));
     }
 
     [Fact]
@@ -225,11 +225,68 @@ public class IndividualClientServiceTests
         var service = CreateService();
 
         // Act
-        var result = await service.UpdateAsync(id, dto);
+        var result = await service.UpdateAsync(id, dto, Guid.NewGuid(), isAdmin: true);
 
         // Assert
         result.ShouldNotBeNull();
         result.FirstName.ShouldBe(dto.FirstName);
         result.LastName.ShouldBe(dto.LastName);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ThrowsUnauthorizedException_WhenEmployeeUpdatesOthersClient()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        var requestingUserId = Guid.NewGuid();
+        var dto = new UpdateIndividualClientDto { FirstName = "Jane", LastName = "Doe", Email = "jane@example.com" };
+        var individual = new IndividualClient
+        {
+            ClientId = id,
+            CreatedByUserId = ownerId,
+            FirstName = "John",
+            LastName = "Doe",
+            EGN = "1234567890",
+            User = new ApplicationUser { Id = id, Email = "john@example.com", UserName = "john@example.com" }
+        };
+
+        _repoMock.Setup(r => r.GetByIdWithDetailsAsync(id)).ReturnsAsync(individual);
+
+        var service = CreateService();
+
+        // Act & Assert
+        await Should.ThrowAsync<UnauthorizedException>(() => service.UpdateAsync(id, dto, requestingUserId, isAdmin: false));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_Succeeds_WhenAdminUpdatesAnyClient()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var dto = new UpdateIndividualClientDto { FirstName = "Jane", LastName = "Smith", Email = "jane@example.com" };
+        var user = new ApplicationUser { Id = id, Email = "john@example.com", UserName = "john@example.com", FirstName = "John", LastName = "Doe" };
+        var individual = new IndividualClient
+        {
+            ClientId = id,
+            CreatedByUserId = Guid.NewGuid(),
+            FirstName = "John",
+            LastName = "Doe",
+            EGN = "1234567890",
+            User = user
+        };
+
+        _repoMock.Setup(r => r.GetByIdWithDetailsAsync(id)).ReturnsAsync(individual);
+        _userManagerMock.Setup(u => u.SetEmailAsync(user, dto.Email)).ReturnsAsync(IdentityResult.Success);
+        _userManagerMock.Setup(u => u.SetUserNameAsync(user, dto.Email)).ReturnsAsync(IdentityResult.Success);
+
+        var service = CreateService();
+
+        // Act — admin with a completely different userId should succeed
+        var result = await service.UpdateAsync(id, dto, Guid.NewGuid(), isAdmin: true);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.FirstName.ShouldBe(dto.FirstName);
     }
 }

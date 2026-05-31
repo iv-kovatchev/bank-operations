@@ -46,7 +46,7 @@ public class ClientsControllerTests
             new() { Id = Guid.NewGuid(), Email = "alice@test.com", FirstName = "Alice", LastName = "Smith" },
             new() { Id = Guid.NewGuid(), Email = "bob@test.com",   FirstName = "Bob",   LastName = "Jones" }
         };
-        clientService.Setup(s => s.GetAllClientsAsync()).ReturnsAsync(clients);
+        clientService.Setup(s => s.GetAllClientsAsync(It.IsAny<Guid?>())).ReturnsAsync(clients);
 
         var controller = CreateController(
             clientService.Object,
@@ -182,7 +182,7 @@ public class ClientsControllerTests
             FirstName = dto.FirstName,
             LastName = dto.LastName
         };
-        individualService.Setup(s => s.UpdateAsync(id, dto)).ReturnsAsync(responseDto);
+        individualService.Setup(s => s.UpdateAsync(id, dto, It.IsAny<Guid>(), It.IsAny<bool>())).ReturnsAsync(responseDto);
 
         var controller = CreateController(
             new Mock<IClientService>().Object,
@@ -219,7 +219,7 @@ public class ClientsControllerTests
             RepresentativeFirstName = dto.RepresentativeFirstName,
             RepresentativeLastName = dto.RepresentativeLastName
         };
-        corporateService.Setup(s => s.UpdateAsync(id, dto)).ReturnsAsync(responseDto);
+        corporateService.Setup(s => s.UpdateAsync(id, dto, It.IsAny<Guid>(), It.IsAny<bool>())).ReturnsAsync(responseDto);
 
         var controller = CreateController(
             new Mock<IClientService>().Object,

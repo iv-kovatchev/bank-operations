@@ -22,9 +22,9 @@ public class ClientService : IClientService
         return ClientMapper.ToDto(client);
     }
 
-    public async Task<IEnumerable<ClientResponseDto>> GetAllClientsAsync()
+    public async Task<IEnumerable<ClientResponseDto>> GetAllClientsAsync(Guid? createdByUserId = null)
     {
-        var clients = await _clientRepository.GetAllWithDetailsAsync();
+        var clients = await _clientRepository.GetAllWithDetailsAsync(createdByUserId);
         return clients.Select(ClientMapper.ToDto);
     }
 

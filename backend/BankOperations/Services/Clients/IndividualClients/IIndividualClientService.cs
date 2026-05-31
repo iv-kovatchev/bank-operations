@@ -5,5 +5,5 @@ namespace BankOperations.Services.Clients.IndividualClients;
 public interface IIndividualClientService
 {
     Task<IndividualClientResponseDto> CreateAsync(CreateIndividualClientDto dto, Guid createdByUserId);
-    Task<IndividualClientResponseDto> UpdateAsync(Guid id, UpdateIndividualClientDto dto);
+    Task<IndividualClientResponseDto> UpdateAsync(Guid id, UpdateIndividualClientDto dto, Guid requestingUserId, bool isAdmin);
 }

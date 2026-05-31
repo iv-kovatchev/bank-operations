@@ -72,12 +72,15 @@ public class CorporateClientService : ICorporateClientService
         return ClientMapper.ToDto(client);
     }
 
-    public async Task<CorporateClientResponseDto> UpdateAsync(Guid id, UpdateCorporateClientDto dto)
+    public async Task<CorporateClientResponseDto> UpdateAsync(Guid id, UpdateCorporateClientDto dto, Guid requestingUserId, bool isAdmin)
     {
         var client = await _clientRepository.GetByIdWithDetailsAsync(id);
 
         if (client is not CorporateClient cc)
             throw new NotFoundException("CorporateClient", id);
+
+        if (!isAdmin && cc.CreatedByUserId != requestingUserId)
+            throw new UnauthorizedException("You can only update clients you have created.");
 
         cc.CompanyName = dto.CompanyName;
         cc.RepresentativeFirstName = dto.RepresentativeFirstName;
