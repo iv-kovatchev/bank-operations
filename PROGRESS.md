@@ -123,7 +123,17 @@
 
 ### Phase 3 — Core Features (backend + frontend in parallel)
 
-- [ ] `feature/clients` + `feature/frontend-clients` — Clients CRUD (Individual + Corporate)
+- [x] `feature/clients` (backend) — Clients CRUD (Individual + Corporate) — `2026-05-31`
+  - DTOs: `IndividualClients/` and `CorporateClients/` with validation and TPT inheritance
+  - Repository: `ClientRepository` with `ExistsByEmailAsync`, `ExistsByEGNAsync`, `ExistsByEIKAsync`, `GetByIdWithDetailsAsync`
+  - Services: `IndividualClientService`, `CorporateClientService` — separate service per subtype
+  - Mapper: `ClientMapper` static class in `Mappers/Clients/` with `ToDto` overloads
+  - Controller: `ClientsController` with all CRUD endpoints (Create, GetById, GetAll, Update, Delete)
+  - `PasswordGenerator` service — generates 12-char random passwords for new clients
+  - Swagger JWT auth configured (Swashbuckle downgraded to 6.9.0 for .NET 10 compatibility)
+  - `RoleClaimType` fix — set to full Microsoft URI in `TokenValidationParameters` + `Configure<IdentityOptions>`
+  - `IService<T>` renamed to `IService`, moved to `Services/IService.cs`; `IRepository<T>` renamed to `IRepository`, moved to `Repositories/IRepository.cs`
+- [ ] `feature/frontend-clients` — Clients CRUD frontend (Individual + Corporate)
 - [ ] `feature/bank-accounts` + `feature/frontend-accounts` — Bank Accounts CRUD
 - [ ] `feature/credits` + `feature/frontend-credits` — Credits (Consumer + Mortgage) + Repayment Plan generation
 - [ ] `feature/installments` — Mark installment as paid + credit status check

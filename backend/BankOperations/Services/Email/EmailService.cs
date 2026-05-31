@@ -14,6 +14,48 @@ public class EmailService : IEmailService
 
     public async Task SendOtpEmailAsync(string toEmail, string firstName, string otpCode)
     {
+        var (smtpClient, from, _) = CreateSmtpClient();
+
+        var subject = "Your login verification code";
+        var body = $"Hello {firstName}, your verification code is: {otpCode}. It expires in 5 minutes.";
+
+        using var message = new MailMessage
+        {
+            From = from,
+            Subject = subject,
+            Body = body,
+            IsBodyHtml = false
+        };
+
+        message.To.Add(toEmail);
+
+        using (smtpClient)
+            await smtpClient.SendMailAsync(message);
+    }
+
+    public async Task SendWelcomeEmailAsync(string toEmail, string firstName, string password)
+    {
+        var (smtpClient, from, _) = CreateSmtpClient();
+
+        var subject = "Welcome to Bank Operations";
+        var body = $"Hello {firstName}, your account has been created.\nEmail: {toEmail}\nTemporary password: {password}\nPlease change your password after your first login.";
+
+        using var message = new MailMessage
+        {
+            From = from,
+            Subject = subject,
+            Body = body,
+            IsBodyHtml = false
+        };
+
+        message.To.Add(toEmail);
+
+        using (smtpClient)
+            await smtpClient.SendMailAsync(message);
+    }
+
+    private (SmtpClient client, MailAddress from, string fromName) CreateSmtpClient()
+    {
         var host = _configuration["Email:SmtpHost"]!;
         var port = int.Parse(_configuration["Email:SmtpPort"]!);
 
@@ -27,25 +69,12 @@ public class EmailService : IEmailService
             ?? _configuration["Email:Password"]
             ?? throw new InvalidOperationException("EMAIL_PASSWORD is not configured.");
 
-        var subject = "Your login verification code";
-        var body = $"Hello {firstName}, your verification code is: {otpCode}. It expires in 5 minutes.";
-
-        using var message = new MailMessage
-        {
-            From = new MailAddress(fromEmail, fromName),
-            Subject = subject,
-            Body = body,
-            IsBodyHtml = false
-        };
-
-        message.To.Add(toEmail);
-
-        using var client = new SmtpClient(host, port)
+        var smtpClient = new SmtpClient(host, port)
         {
             Credentials = new NetworkCredential(fromEmail, password),
             EnableSsl = true
         };
 
-        await client.SendMailAsync(message);
+        return (smtpClient, new MailAddress(fromEmail, fromName), fromName);
     }
 }

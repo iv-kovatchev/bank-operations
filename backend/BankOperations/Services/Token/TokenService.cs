@@ -25,6 +25,7 @@ public class TokenService : ITokenService
             ?? Environment.GetEnvironmentVariable("JWT_SECRET")
             ?? _configuration["Jwt:Secret"];
 
+
         if (string.IsNullOrEmpty(secret))
             throw new InvalidOperationException("JWT secret is not configured.");
 
