@@ -14,8 +14,8 @@ Available knowledge files (updated as features are completed):
 - @.claude/knowledge/ci-cd.md — GitHub Actions workflow, Azure OIDC auth, build/deploy jobs, path filter
 - @.claude/knowledge/auth.md — two-step login, JWT + refresh token, OTP, EmailService config, auto-refresh in AuthContext
 - @.claude/knowledge/frontend-deploy.md — Azure Static Web Apps, CORS, cross-domain token storage, staticwebapp.config.json
-- @.claude/knowledge/clients-backend.md — Clients CRUD, TPT cast pattern, ClientMapper, PasswordGenerator, RoleClaimType fix, Swashbuckle version
-- @.claude/knowledge/clients-tests.md — xUnit/Moq/Shouldly setup, WebApplicationFactory pattern, InMemory DB branch, JWT token generation for tests
+- @.claude/knowledge/clients/backend.md — Clients CRUD, TPT cast pattern, ClientMapper, PasswordGenerator, RoleClaimType fix, Swashbuckle version
+- @.claude/knowledge/clients/tests.md — xUnit/Moq/Shouldly setup, WebApplicationFactory pattern, InMemory DB branch, JWT token generation for tests
 
 ## Project Summary
 A closed, employee-only web application for managing bank clients, accounts, and credits.
