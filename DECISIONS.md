@@ -191,6 +191,22 @@
 
 ---
 
+## 2026-05-31 — feature/clients
+
+### Two separate services for Individual and Corporate clients
+**Decision:** Split into `IndividualClientService` and `CorporateClientService` instead of one `ClientService`.
+**Why:** Individual and Corporate clients have different creation logic, validation, and fields. Separate services keep each class focused and easier to test.
+
+### ClientMapper static class
+**Decision:** Static `ClientMapper` class in `Mappers/Clients/` instead of private mapping methods in each service.
+**Why:** Mapping logic was duplicated across `IndividualClientService` and `CorporateClientService`. A shared mapper eliminates duplication and is reusable across controllers and services.
+
+### RoleClaimType fix for ASP.NET Identity + JWT
+**Decision:** Set `RoleClaimType` to the full Microsoft URI (`http://schemas.microsoft.com/ws/2008/06/identity/claims/role`) in both `TokenValidationParameters` and `Configure<IdentityOptions>`.
+**Why:** `AddIdentity` overrides the JWT role claim type at runtime. Without this fix, `[Authorize(Roles)]` always returns 403 even when the JWT contains the correct role claim. Setting the same URI in both places ensures the JWT middleware and Identity pipeline agree on the claim key.
+
+---
+
 ## Template for new decisions
 
 ```markdown

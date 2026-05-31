@@ -1,4 +1,5 @@
-﻿using BankOperations.Repositories.Otp;
+﻿using BankOperations.Repositories.Clients;
+using BankOperations.Repositories.Otp;
 using BankOperations.Repositories.Token;
 
 namespace BankOperations.Config;
@@ -9,6 +10,7 @@ public static class RepositoryExtensions
     {
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IOtpRepository, OtpRepository>();
+        services.AddScoped<IClientRepository, ClientRepository>();
         return services;
     }
 }
