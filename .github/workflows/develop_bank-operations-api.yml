@@ -9,10 +9,33 @@ on:
       - develop
     paths:
       - 'backend/**'
+  pull_request:
+    branches:
+      - develop
   workflow_dispatch:
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore
+        run: dotnet restore backend/BankOperations.Tests/BankOperations.Tests.csproj
+
+      - name: Run Unit Tests
+        run: dotnet test backend/BankOperations.Tests/BankOperations.Tests.csproj --verbosity normal --no-restore
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read #This is required for actions/checkout
