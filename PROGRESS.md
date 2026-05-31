@@ -133,6 +133,18 @@
   - Swagger JWT auth configured (Swashbuckle downgraded to 6.9.0 for .NET 10 compatibility)
   - `RoleClaimType` fix — set to full Microsoft URI in `TokenValidationParameters` + `Configure<IdentityOptions>`
   - `IService<T>` renamed to `IService`, moved to `Services/IService.cs`; `IRepository<T>` renamed to `IRepository`, moved to `Repositories/IRepository.cs`
+  - Unit tests: `ClientsControllerTests` (7), `IndividualClientServiceTests` (6), `CorporateClientServiceTests` (6), `ClientRepositoryTests` (10) — 29 unit tests total
+  - Integration tests: `ClientsIntegrationTests` (12) — full HTTP pipeline with InMemory DB, JWT auth, Moq email
+  - Total: 41 tests, all passing
+  - Test project: `BankOperations.Tests` with xUnit 2.9.3 + Moq 4.20.72 + Shouldly 4.3.0
+  - CI pipeline: `test` job added before `build`; runs on push and PR to `develop`; `build`/`migrate`/`deploy` gate on `github.event_name == 'push'`
+  - `createdBy` filter: `GetAllClientsAsync(Guid? createdByUserId)` — Employee sees only own clients, Admin sees all
+  - Ownership check in `GetClientByIdAsync`: Employee receives `UnauthorizedException` when accessing another employee's client
+  - Ownership check in `UpdateAsync`: `isAdmin` flag passed from controller; Employee can only update clients they created
+  - Dev OTP bypass: `OtpService` injects `UserManager`; Employee role always receives OTP `000000` in Development
+  - `DataSeeder`: seeds `employee1@bank.com` and `employee2@bank.com` (password: `Employee@123`) in all environments
+  - `Program.cs`: `IsEnvironment("Testing")` branch uses InMemory DB; production uses SQL Server with retry-on-failure
+  - All service and controller tests updated to reflect new method signatures
 - [ ] `feature/frontend-clients` — Clients CRUD frontend (Individual + Corporate)
 - [ ] `feature/bank-accounts` + `feature/frontend-accounts` — Bank Accounts CRUD
 - [ ] `feature/credits` + `feature/frontend-credits` — Credits (Consumer + Mortgage) + Repayment Plan generation

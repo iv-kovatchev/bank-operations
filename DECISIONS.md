@@ -207,6 +207,34 @@
 
 ---
 
+## 2026-05-31 — Clients tests
+
+### Integration tests use Testing environment with InMemory DB
+**Decision:** `Program.cs` checks `IsEnvironment("Testing")` and registers `UseInMemoryDatabase("TestDb")` instead of SQL Server. `WebApplicationFactory` sets the environment to `"Testing"` via `builder.UseEnvironment("Testing")`.
+**Why:** Replacing DbContext service descriptors in `ConfigureServices` caused a dual-provider conflict at runtime — EF Core detected both the SQL Server and InMemory registrations and threw. Branching in `Program.cs` is cleaner: only one provider is ever registered, so no conflict is possible. Alternatives considered: removing all `DbContextOptions<>` descriptors (brittle, order-dependent) and using SQLite in-process (heavier dependency).
+
+### EmailService mocked in integration tests
+**Decision:** Real `EmailService` is replaced with a `Moq` mock in `WebApplicationFactory.ConfigureServices`.
+**Why:** Integration tests call `CreateAsync` which invokes `SendWelcomeEmailAsync`. Without a mock, the test host tries to open a real SMTP connection to `localhost:25`, which fails in CI and dev environments. A Moq mock allows testing the full HTTP pipeline (auth → controller → service → repository) without side effects.
+
+### xUnit 2.9.3 + xunit.runner.visualstudio 2.8.2
+**Decision:** Pinned to xUnit 2.9.3 and `xunit.runner.visualstudio` 2.8.2.
+**Why:** `xunit.runner.visualstudio` 3.x requires xUnit v3, which has breaking API changes and is not yet stable. Version 2.8.2 is the latest runner that is compatible with xUnit 2.x and works correctly with C# Dev Kit's test discovery in VS Code.
+
+---
+
+## 2026-05-31 — Employee ownership checks
+
+### Employee data isolation for clients
+**Decision:** Employees can only list, view, and update clients they personally created. Admins can access all clients regardless of who created them.
+**Why:** Data isolation between employees — each employee manages their own client portfolio. Implemented via `createdByUserId` filter in `GetAllClientsAsync`, ownership check (`UnauthorizedException`) in `GetClientByIdAsync`, and `isAdmin` flag in `UpdateAsync` for both Individual and Corporate services.
+
+### Dev OTP bypass for Employee role
+**Decision:** In the Development environment, `OtpService` checks if the authenticating user has the `Employee` role and, if so, stores and returns a fixed OTP of `000000` without sending an email.
+**Why:** Eliminates the need for multiple email accounts during local development and testing. Admin users still receive a real randomised OTP via SMTP so the full email flow is exercised in dev. Scoped to Development only — Azure (Production) always uses real OTPs.
+
+---
+
 ## Template for new decisions
 
 ```markdown

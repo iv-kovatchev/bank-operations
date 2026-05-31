@@ -25,12 +25,26 @@ CRUD for Individual and Corporate clients. Each client is both an `ApplicationUs
 5. `IndividualClient` entity is created with `ClientId = user.Id` (PK = FK to AspNetUsers)
 6. Repository saves; `EmailService.SendWelcomeEmailAsync` sends login credentials
 
+### GetAll — createdBy filter
+`GetAllClientsAsync(Guid? createdByUserId = null)` is threaded all the way from controller → service → repository:
+- Controller extracts `userId` from JWT; passes it only when `User.IsInRole("Employee")`, `null` for Admin
+- Repository applies `Where(c => c.CreatedByUserId == createdByUserId.Value)` when the parameter has a value
+
+### GetById — ownership check
+`GetClientByIdAsync(Guid id, Guid requestingUserId, bool isAdmin)` in `ClientService`:
+```csharp
+if (!isAdmin && client.CreatedByUserId != requestingUserId)
+    throw new UnauthorizedException("You do not have access to this client.");
+```
+Controller extracts `userId` + `isAdmin = User.IsInRole("Admin")` and passes them through.
+
 ### Client update (Individual example)
 1. `GetByIdWithDetailsAsync` loads the `Client` base with its `User` navigation
 2. TPT cast: `client is not IndividualClient ic` → throws `NotFoundException` if wrong type
-3. Direct property assignment for non-identity fields (`ic.FirstName`, etc.)
-4. `UserManager.SetEmailAsync` + `SetUserNameAsync` for email changes (never set directly — UserManager handles normalization)
-5. Repository update + save
+3. Ownership check: `if (!isAdmin && ic.CreatedByUserId != requestingUserId)` → throws `UnauthorizedException`
+4. Direct property assignment for non-identity fields (`ic.FirstName`, etc.)
+5. `UserManager.SetEmailAsync` + `SetUserNameAsync` for email changes (never set directly — UserManager handles normalization)
+6. Repository update + save
 
 ### TPT cast pattern in service layer
 ```csharp
@@ -84,6 +98,43 @@ await _userManager.SetEmailAsync(user, newEmail);
 await _userManager.SetUserNameAsync(user, newEmail);
 ```
 UserManager handles normalization and triggers Identity validators.
+
+### Dev OTP bypass (OtpService)
+`OtpService` injects `IWebHostEnvironment` and `UserManager<ApplicationUser>`. In Development, if the user has the `Employee` role, it stores and returns `"000000"` without sending an email:
+```csharp
+if (_environment.IsDevelopment())
+{
+    var user = await _userManager.FindByIdAsync(userId.ToString());
+    if (user != null && await _userManager.IsInRoleAsync(user, "Employee"))
+    {
+        // store 000000 OTP, return immediately
+    }
+}
+```
+Admin and Client users always receive a real randomised OTP via SMTP regardless of environment.
+
+### DataSeeder — employee accounts
+After seeding the admin, `DataSeeder` always creates two employee accounts (idempotent):
+- `employee1@bank.com` / `Employee@123` — role: Employee
+- `employee2@bank.com` / `Employee@123` — role: Employee
+
+The block guards with `if (admin == null) return;` using the real admin email `c0dyyy921@gmail.com`.
+
+### Program.cs — Testing environment InMemory DB
+```csharp
+if (builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseInMemoryDatabase("TestDb"));
+}
+else
+{
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseSqlServer(connectionString,
+            sqlOptions => sqlOptions.EnableRetryOnFailure(...)));
+}
+```
+`Microsoft.EntityFrameworkCore.InMemory` is referenced in both the main project (for this branch) and the test project.
 
 ### IRepository / IService base interfaces
 Base interfaces live at:
