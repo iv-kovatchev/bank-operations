@@ -32,8 +32,7 @@ public class ClientsController : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var role = User.FindFirstValue("role");
-        var createdByUserId = role == "Employee" ? userId : (Guid?)null;
+        var createdByUserId = User.IsInRole("Employee") ? userId : (Guid?)null;
         var clients = await _clientService.GetAllClientsAsync(createdByUserId);
         return Ok(clients);
     }
@@ -41,7 +40,9 @@ public class ClientsController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var client = await _clientService.GetClientByIdAsync(id);
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var isAdmin = User.IsInRole("Admin");
+        var client = await _clientService.GetClientByIdAsync(id, userId, isAdmin);
         return Ok(client);
     }
 

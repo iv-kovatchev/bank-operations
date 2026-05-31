@@ -223,6 +223,18 @@
 
 ---
 
+## 2026-05-31 — Employee ownership checks
+
+### Employee data isolation for clients
+**Decision:** Employees can only list, view, and update clients they personally created. Admins can access all clients regardless of who created them.
+**Why:** Data isolation between employees — each employee manages their own client portfolio. Implemented via `createdByUserId` filter in `GetAllClientsAsync`, ownership check (`UnauthorizedException`) in `GetClientByIdAsync`, and `isAdmin` flag in `UpdateAsync` for both Individual and Corporate services.
+
+### Dev OTP bypass for Employee role
+**Decision:** In the Development environment, `OtpService` checks if the authenticating user has the `Employee` role and, if so, stores and returns a fixed OTP of `000000` without sending an email.
+**Why:** Eliminates the need for multiple email accounts during local development and testing. Admin users still receive a real randomised OTP via SMTP so the full email flow is exercised in dev. Scoped to Development only — Azure (Production) always uses real OTPs.
+
+---
+
 ## Template for new decisions
 
 ```markdown

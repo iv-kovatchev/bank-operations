@@ -14,10 +14,13 @@ public class ClientService : IClientService
         _clientRepository = clientRepository;
     }
 
-    public async Task<ClientResponseDto> GetClientByIdAsync(Guid id)
+    public async Task<ClientResponseDto> GetClientByIdAsync(Guid id, Guid requestingUserId, bool isAdmin)
     {
         var client = await _clientRepository.GetByIdWithDetailsAsync(id)
             ?? throw new NotFoundException("Client", id);
+
+        if (!isAdmin && client.CreatedByUserId != requestingUserId)
+            throw new UnauthorizedException("You do not have access to this client.");
 
         return ClientMapper.ToDto(client);
     }

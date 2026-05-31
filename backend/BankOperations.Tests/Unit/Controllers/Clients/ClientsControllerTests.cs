@@ -69,7 +69,7 @@ public class ClientsControllerTests
         var id = Guid.NewGuid();
         var clientService = new Mock<IClientService>();
         var dto = new IndividualClientResponseDto { Id = id, Email = "client@test.com", FirstName = "John", LastName = "Doe" };
-        clientService.Setup(s => s.GetClientByIdAsync(id)).ReturnsAsync(dto);
+        clientService.Setup(s => s.GetClientByIdAsync(id, It.IsAny<Guid>(), It.IsAny<bool>())).ReturnsAsync(dto);
 
         var controller = CreateController(
             clientService.Object,
