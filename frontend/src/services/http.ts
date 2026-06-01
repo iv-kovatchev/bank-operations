@@ -30,6 +30,9 @@ const handleResponse = async <T>(response: Response): Promise<T> => {
     throw new Error(message);
   }
 
+  if (response.status === 204 || response.headers.get('content-length') === '0') {
+    return undefined as T;
+  }
   return response.json() as Promise<T>;
 };
 
@@ -71,4 +74,14 @@ const del = async <T>(url: string): Promise<T> => {
   return handleResponse<T>(response);
 };
 
-export const http = { get, post, put, del };
+const patch = async <T>(url: string, body?: unknown): Promise<T> => {
+  const response = await fetch(`${BASE_URL}${url}`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    credentials: 'include',
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+  return handleResponse<T>(response);
+};
+
+export const http = { get, post, put, del, patch };

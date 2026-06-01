@@ -41,10 +41,24 @@ public class ClientRepository : IClientRepository
 
     public async Task<IEnumerable<Client>> GetAllWithDetailsAsync(Guid? createdByUserId = null)
     {
-        var query = _context.Clients.Include(c => c.User).AsQueryable();
+        var individuals = _context.IndividualClients
+            .Include(c => c.User)
+            .AsQueryable();
+
+        var corporates = _context.CorporateClients
+            .Include(c => c.User)
+            .AsQueryable();
+
         if (createdByUserId.HasValue)
-            query = query.Where(c => c.CreatedByUserId == createdByUserId.Value);
-        return await query.ToListAsync();
+        {
+            individuals = individuals.Where(c => c.CreatedByUserId == createdByUserId.Value);
+            corporates = corporates.Where(c => c.CreatedByUserId == createdByUserId.Value);
+        }
+
+        var result = new List<Client>();
+        result.AddRange(await individuals.ToListAsync());
+        result.AddRange(await corporates.ToListAsync());
+        return result;
     }
 
     public async Task<bool> ExistsByEmailAsync(string email)

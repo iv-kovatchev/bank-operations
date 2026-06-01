@@ -40,3 +40,34 @@
 .header-dropdown-item {
   justify-content: center;
 }
+
+.header-username {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+@media (max-width: 768px) {
+  .header-username {
+    max-width: 80px;
+  }
+}
+
+.header-hamburger {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: inherit;
+  line-height: 0;
+}
+
+@media (max-width: 768px) {
+  .header-hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

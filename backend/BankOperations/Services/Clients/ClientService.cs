@@ -40,4 +40,14 @@ public class ClientService : IClientService
         await _clientRepository.UpdateAsync(client);
         await _clientRepository.SaveChangesAsync();
     }
+
+    public async Task ActivateClientAsync(Guid id)
+    {
+        var client = await _clientRepository.GetByIdWithDetailsAsync(id)
+            ?? throw new NotFoundException("Client", id);
+
+        client.User.IsActive = true;
+        await _clientRepository.UpdateAsync(client);
+        await _clientRepository.SaveChangesAsync();
+    }
 }

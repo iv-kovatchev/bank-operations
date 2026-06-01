@@ -10,3 +10,12 @@ html, body {
 #root {
   height: 100vh;
 }
+
+button, a, [role="button"] {
+  cursor: pointer !important;
+}
+
+.radix-themes {
+  --cursor-button: pointer;
+  --cursor-link: pointer;
+}
