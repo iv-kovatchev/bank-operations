@@ -128,7 +128,7 @@ public class CorporateClientServiceTests
         result.ShouldNotBeNull();
         result.ShouldBeOfType<CorporateClientResponseDto>();
         result.CompanyName.ShouldBe(dto.CompanyName);
-        result.EIK.ShouldBe(dto.EIK);
+        result.Eik.ShouldBe(dto.EIK);
         result.RepresentativeFirstName.ShouldBe(dto.RepresentativeFirstName);
         result.RepresentativeLastName.ShouldBe(dto.RepresentativeLastName);
         result.Email.ShouldBe(dto.Email);

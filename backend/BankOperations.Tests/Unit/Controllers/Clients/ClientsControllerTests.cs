@@ -104,7 +104,7 @@ public class ClientsControllerTests
             Email = dto.Email,
             FirstName = dto.FirstName,
             LastName = dto.LastName,
-            EGN = dto.EGN
+            Egn = dto.EGN
         };
         individualService.Setup(s => s.CreateAsync(dto, userId)).ReturnsAsync(responseDto);
 
@@ -142,7 +142,7 @@ public class ClientsControllerTests
             Id = Guid.NewGuid(),
             Email = dto.Email,
             CompanyName = dto.CompanyName,
-            EIK = dto.EIK,
+            Eik = dto.EIK,
             RepresentativeFirstName = dto.RepresentativeFirstName,
             RepresentativeLastName = dto.RepresentativeLastName
         };
