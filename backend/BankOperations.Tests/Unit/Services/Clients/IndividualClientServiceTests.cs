@@ -126,7 +126,7 @@ public class IndividualClientServiceTests
         result.ShouldBeOfType<IndividualClientResponseDto>();
         result.FirstName.ShouldBe(dto.FirstName);
         result.LastName.ShouldBe(dto.LastName);
-        result.EGN.ShouldBe(dto.EGN);
+        result.Egn.ShouldBe(dto.EGN);
         result.Email.ShouldBe(dto.Email);
         result.CreatedByUserId.ShouldBe(createdByUserId);
 

@@ -80,11 +80,19 @@ public class ClientsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpDelete("{id:guid}/deactivate")]
+    [HttpPatch("{id:guid}/deactivate")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Deactivate(Guid id)
     {
         await _clientService.DeactivateClientAsync(id);
+        return NoContent();
+    }
+
+    [HttpPatch("{id:guid}/activate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Activate(Guid id)
+    {
+        await _clientService.ActivateClientAsync(id);
         return NoContent();
     }
 }

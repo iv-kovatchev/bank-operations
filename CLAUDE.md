@@ -16,6 +16,7 @@ Available knowledge files (updated as features are completed):
 - @.claude/knowledge/frontend-deploy.md — Azure Static Web Apps, CORS, cross-domain token storage, staticwebapp.config.json
 - @.claude/knowledge/clients/backend.md — Clients CRUD, TPT cast pattern, ClientMapper, PasswordGenerator, RoleClaimType fix, Swashbuckle version
 - @.claude/knowledge/clients/tests.md — xUnit/Moq/Shouldly setup, WebApplicationFactory pattern, InMemory DB branch, JWT token generation for tests
+- @.claude/knowledge/clients/frontend.md — ClientsListPage, ClientDetailPage, form hooks, ConfirmModal pattern, type narrowing, route reuse for Admin+Employee
 
 ## Project Summary
 A closed, employee-only web application for managing bank clients, accounts, and credits.

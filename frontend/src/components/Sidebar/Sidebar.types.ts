@@ -5,7 +5,3 @@ export type SidebarItem = {
   path: string;
   icon?: ReactNode;
 };
-
-export type SidebarProps = {
-  items: SidebarItem[];
-};

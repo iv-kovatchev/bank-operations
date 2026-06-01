@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { http } from '../../services/http';
 import { useAuth } from '../../context/auth/useAuth';
@@ -6,8 +6,10 @@ import { useAuth } from '../../context/auth/useAuth';
 export const useLogout = () => {
   const navigate = useNavigate();
   const { clearToken } = useAuth();
+  const queryClient = useQueryClient();
 
   const clearAndRedirect = () => {
+    queryClient.clear();
     localStorage.removeItem('refreshToken');
     clearToken();
     navigate('/login');

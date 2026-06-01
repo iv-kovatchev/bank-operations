@@ -341,7 +341,7 @@ public class ClientsIntegrationTests : IClassFixture<BankOperationsWebApplicatio
         var created = JsonSerializer.Deserialize<IndividualClientResponseDto>(body, JsonOptions);
 
         // Act
-        var response = await client.DeleteAsync($"/api/clients/{created!.Id}/deactivate");
+        var response = await client.PatchAsync($"/api/clients/{created!.Id}/deactivate", null);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
@@ -354,7 +354,7 @@ public class ClientsIntegrationTests : IClassFixture<BankOperationsWebApplicatio
         var client = CreateAuthenticatedClient(Guid.NewGuid(), "Employee");
 
         // Act
-        var response = await client.DeleteAsync($"/api/clients/{Guid.NewGuid()}/deactivate");
+        var response = await client.PatchAsync($"/api/clients/{Guid.NewGuid()}/deactivate", null);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);

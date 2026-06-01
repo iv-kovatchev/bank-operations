@@ -124,6 +124,19 @@
 ### Phase 3 — Core Features (backend + frontend in parallel)
 
 - [x] `feature/clients` (backend) — Clients CRUD (Individual + Corporate) — `2026-05-31`
+  (see above for full details)
+
+- [x] `feature/frontend-clients` — Clients CRUD frontend (Individual + Corporate) — `2026-06-02`
+  - `src/types/client.types.ts` — `ClientType` enum, `ClientResponse`, `IndividualClientResponse`, `CorporateClientResponse`, `ClientDetailResponse` (union), all Create/Update DTOs
+  - 8 API hooks in `src/api/clients/`: `useGetClients`, `useGetClient`, `useCreateIndividualClient`, `useCreateCorporateClient`, `useUpdateIndividualClient`, `useUpdateCorporateClient`, `useDeactivateClient`, `useActivateClient`; all invalidate `['clients']` on success
+  - `http.ts` — added `patch` method; `handleResponse` handles 204 No Content
+  - `ClientsListPage` — two tables (Individual + Corporate), search/filter per table (name/egn/email, company/eik/email), empty state, responsive (Status+Actions hidden on mobile), Admin-only Activate/Deactivate with `ConfirmModal`
+  - `ClientDetailPage` — detail card with type-specific fields, edit via `FormModal`, activate/deactivate with `ConfirmModal`, back navigation aware of admin vs employee path
+  - `IndividualClientForm` / `CorporateClientForm` — in `src/pages/Employee/Clients/components/`; each in own folder with co-located `use*Form.ts` hook; React Hook Form + Zod; EGN/EIK disabled in edit mode
+  - Reusable components: `FormModal` (generic Dialog wrapper), `ConfirmModal`, `Button` (uppercase/letter-spacing wrapper), `Badge` (outline variant with border-color fix)
+  - `Sidebar` — role-aware nav (Employee: Dashboard + Clients, Admin: Dashboard + Clients); `useLocation` for active detection; brand + sign-out removed (moved to Header dropdown)
+  - Routes: `/employee/clients`, `/employee/clients/:id`, `/admin/clients`, `/admin/clients/:id` — both Employee and Admin can access the same `ClientsListPage` / `ClientDetailPage`
+  - Backend additions: `PATCH /api/clients/:id/activate` and `PATCH /api/clients/:id/deactivate` endpoints added to `ClientsController`
   - DTOs: `IndividualClients/` and `CorporateClients/` with validation and TPT inheritance
   - Repository: `ClientRepository` with `ExistsByEmailAsync`, `ExistsByEGNAsync`, `ExistsByEIKAsync`, `GetByIdWithDetailsAsync`
   - Services: `IndividualClientService`, `CorporateClientService` — separate service per subtype
@@ -145,7 +158,7 @@
   - `DataSeeder`: seeds `employee1@bank.com` and `employee2@bank.com` (password: `Employee@123`) in all environments
   - `Program.cs`: `IsEnvironment("Testing")` branch uses InMemory DB; production uses SQL Server with retry-on-failure
   - All service and controller tests updated to reflect new method signatures
-- [ ] `feature/frontend-clients` — Clients CRUD frontend (Individual + Corporate)
+- [x] `feature/frontend-clients` — Clients CRUD frontend (Individual + Corporate) — `2026-06-02`
 - [ ] `feature/bank-accounts` + `feature/frontend-accounts` — Bank Accounts CRUD
 - [ ] `feature/credits` + `feature/frontend-credits` — Credits (Consumer + Mortgage) + Repayment Plan generation
 - [ ] `feature/installments` — Mark installment as paid + credit status check

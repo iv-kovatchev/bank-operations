@@ -12,6 +12,8 @@ import AdminDashboard from '../pages/Admin/Dashboard/AdminDashboard';
 import EmployeeDashboard from '../pages/Employee/Dashboard/EmployeeDashboard';
 import ClientDashboard from '../pages/Client/Dashboard/ClientDashboard';
 import NotFound from '../pages/NotFound/NotFound';
+import ClientsListPage from '../pages/Employee/Clients/List/ClientsListPage';
+import ClientDetailPage from '../pages/Employee/Clients/Detail/ClientDetailPage';
 import { useAuth } from '../context/auth/useAuth';
 
 const RootRedirect = () => {
@@ -49,10 +51,14 @@ const AppRoutes = () => (
     <Route element={<AuthenticatedLayout />}>
       <Route element={<AdminRoutes />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/clients" element={<ClientsListPage />} />
+        <Route path="/admin/clients/:id" element={<ClientDetailPage />} />
       </Route>
 
       <Route element={<EmployeeRoutes />}>
         <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
+        <Route path="/employee/clients" element={<ClientsListPage />} />
+        <Route path="/employee/clients/:id" element={<ClientDetailPage />} />
       </Route>
 
       <Route element={<ClientRoutes />}>

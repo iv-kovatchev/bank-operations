@@ -14,9 +14,10 @@ public static class ClientMapper
         IsActive = client.User.IsActive,
         CreatedAt = client.User.CreatedAt,
         CreatedByUserId = client.CreatedByUserId,
+        Type = "Individual",
         FirstName = client.FirstName,
         LastName = client.LastName,
-        EGN = client.EGN
+        Egn = client.EGN
     };
 
     public static CorporateClientResponseDto ToDto(CorporateClient client) => new()
@@ -26,16 +27,40 @@ public static class ClientMapper
         IsActive = client.User.IsActive,
         CreatedAt = client.User.CreatedAt,
         CreatedByUserId = client.CreatedByUserId,
+        Type = "Corporate",
         CompanyName = client.CompanyName,
-        EIK = client.EIK,
+        Eik = client.EIK,
         RepresentativeFirstName = client.RepresentativeFirstName,
         RepresentativeLastName = client.RepresentativeLastName
     };
 
-    public static ClientResponseDto ToDto(Client client) => client switch
+    public static ClientResponseDto ToDto(Client client)
     {
-        IndividualClient ic => ToDto(ic),
-        CorporateClient cc => ToDto(cc),
-        _ => throw new InvalidOperationException($"Unknown client type: {client.GetType().Name}")
-    };
+        var dto = new ClientResponseDto
+        {
+            Id = client.ClientId,
+            Email = client.User.Email!,
+            IsActive = client.User.IsActive,
+            CreatedAt = client.User.CreatedAt,
+            CreatedByUserId = client.CreatedByUserId
+        };
+
+        if (client is IndividualClient ic)
+        {
+            dto.Type = "Individual";
+            dto.FirstName = ic.FirstName;
+            dto.LastName = ic.LastName;
+            dto.Egn = ic.EGN;
+        }
+        else if (client is CorporateClient cc)
+        {
+            dto.Type = "Corporate";
+            dto.CompanyName = cc.CompanyName;
+            dto.Eik = cc.EIK;
+            dto.RepresentativeFirstName = cc.RepresentativeFirstName;
+            dto.RepresentativeLastName = cc.RepresentativeLastName;
+        }
+
+        return dto;
+    }
 }
