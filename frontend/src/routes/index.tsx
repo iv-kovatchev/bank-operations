@@ -12,8 +12,8 @@ import AdminDashboard from '../pages/Admin/Dashboard/AdminDashboard';
 import EmployeeDashboard from '../pages/Employee/Dashboard/EmployeeDashboard';
 import ClientDashboard from '../pages/Client/Dashboard/ClientDashboard';
 import NotFound from '../pages/NotFound/NotFound';
-import ClientsListPage from '../pages/Employee/Clients/List/ClientsListPage';
-import ClientDetailPage from '../pages/Employee/Clients/Detail/ClientDetailPage';
+import ClientsListPage from '../pages/Employee/Clients/ClientsListPage/ClientsListPage';
+import ClientDetailPage from '../pages/Employee/Clients/ClientDetailPage/ClientDetailPage';
 import { useAuth } from '../context/auth/useAuth';
 
 const RootRedirect = () => {

@@ -172,7 +172,21 @@
   - `staticwebapp.config.json` — added `mimeTypes` for `.js`/`.mjs`/`.wasm` to fix MIME type error on Azure Static Web Apps
   - `cursor: pointer` fix — `--cursor-button` CSS variable overridden in `.radix-themes` to apply pointer cursor on all buttons globally
 - [x] `feature/frontend-clients` — Clients CRUD frontend (Individual + Corporate) — `2026-06-02`
-- [ ] `feature/bank-accounts` + `feature/frontend-accounts` — Bank Accounts CRUD
+- [x] `feature/bank-accounts` (backend) — Bank Accounts CRUD + soft delete + inactive client guard — `2026-06-05`
+  - `BankAccountsController`: `GET /api/clients/{clientId}/accounts`, `POST /api/clients/{clientId}/accounts`, `PATCH /api/accounts/{id}/close` (Employee,Admin), `DELETE /api/accounts/{id}` (Admin only)
+  - `IBankAccountRepository` / `BankAccountRepository`: `ExistsByIbanAsync`, `GetAllByClientIdAsync` + standard CRUD
+  - `IBankAccountService` / `BankAccountService`: `GetAllByClientIdAsync`, `OpenAccountAsync`, `CloseAccountAsync`, `DeleteAccountAsync`
+  - `BankAccountMapper` static class in `Mappers/BankAccounts/`
+  - Client ownership check on GET: Employee can only list accounts for clients they created; Admin sees all
+  - `OpenAccountAsync` validates `client.User.IsActive` via `GetByIdWithDetailsAsync` — throws `ValidationException` for inactive clients
+  - Soft delete: `BankAccount.IsDeleted` bool; `DeleteAsync` sets flag instead of removing row; `GetByIdAsync` and `GetAllByClientIdAsync` filter `IsDeleted = false`
+  - Migration `AddBankAccountIbanUniqueIndex` — unique index on `BankAccounts.IBAN`
+  - Migration `AddBankAccountSoftDelete` — adds `IsDeleted` column (bit, default false)
+  - Registered in `Config/ServiceExtensions.cs` and `Config/RepositoryExtensions.cs`
+  - Unit tests: 20 (controller + service + repository layers)
+  - Integration tests: 8 (full HTTP pipeline)
+  - Total tests across project: 78 (41 clients + 20 bank account unit + 8 bank account integration - 3 updated existing + 20 new)
+- [ ] `feature/frontend-accounts` — Bank Accounts frontend
 - [ ] `feature/credits` + `feature/frontend-credits` — Credits (Consumer + Mortgage) + Repayment Plan generation
 - [ ] `feature/installments` — Mark installment as paid + credit status check
 - [ ] `feature/activity-log` + `feature/frontend-admin` — Activity Log middleware + Employee management + Admin view
@@ -213,4 +227,9 @@
 - `2026-05-29` — Route layouts (`PublicLayout`, `AuthenticatedLayout`) defined once in `src/routes/index.tsx` using React Router nested routes with `<Outlet />`; pages never import `PageLayout` directly
 - `2026-05-29` — `ThemeContext` manages dark/light appearance; Radix `Theme` component receives `appearance` from `useTheme()` inside `App.tsx`; theme persisted in `localStorage`
 - `2026-05-29` — Context folders: `src/context/auth/` and `src/context/theme/`; each contains the def file, provider, and hook
+- `2026-06-04` — Bank Accounts use nested routes (`/api/clients/{clientId}/accounts`) for open/list to make client ownership explicit at the URL level; close uses `/api/accounts/{id}/close` (account-centric, no clientId needed)
+- `2026-06-04` — IBAN uniqueness enforced via a dedicated migration (`AddBankAccountIbanUniqueIndex`) rather than a check in the service layer, so the DB is the authoritative source of uniqueness
+- `2026-06-05` — BankAccount uses soft delete (`IsDeleted` flag) instead of hard delete; deleted accounts are invisible to `GetByIdAsync` and `GetAllByClientIdAsync` but the row is retained for audit purposes
+- `2026-06-05` — `CloseAccount` endpoint opened to `Employee,Admin` (was Admin only) — employees need to close accounts as part of daily operations; physical deletion remains Admin-only
+- `2026-06-05` — `OpenAccountAsync` calls `GetByIdWithDetailsAsync` (not `GetByIdAsync`) to eagerly load `client.User` so `IsActive` can be checked without a second query
 

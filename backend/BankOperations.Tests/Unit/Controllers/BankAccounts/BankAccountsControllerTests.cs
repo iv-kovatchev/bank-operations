@@ -119,13 +119,29 @@ public class BankAccountsControllerTests
     [Fact]
     public void CloseAccount_ReturnsForbidden_WhenEmployee()
     {
-        // [Authorize(Roles = "Admin")] on CloseAccount prevents employee access at the
-        // middleware level (tested in integration tests). This test verifies the
-        // attribute is correctly configured on the action method.
+        // [Authorize(Roles = "Employee,Admin")] on CloseAccount — verifies the attribute
+        // is correctly configured to allow both Employee and Admin roles.
         var method = typeof(BankAccountsController)
             .GetMethod(nameof(BankAccountsController.CloseAccount));
         var attr = method!.GetCustomAttribute<AuthorizeAttribute>();
         attr.ShouldNotBeNull();
-        attr!.Roles.ShouldBe("Admin");
+        attr!.Roles.ShouldBe("Employee,Admin");
+    }
+
+    [Fact]
+    public async Task DeleteAccount_ReturnsNoContent_WhenAdmin()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        var serviceMock = new Mock<IBankAccountService>();
+        serviceMock.Setup(s => s.DeleteAccountAsync(accountId)).Returns(Task.CompletedTask);
+        var controller = CreateController(serviceMock.Object, Guid.NewGuid(), "Admin");
+
+        // Act
+        var result = await controller.DeleteAccount(accountId);
+
+        // Assert
+        result.ShouldBeOfType<NoContentResult>();
+        serviceMock.Verify(s => s.DeleteAccountAsync(accountId), Times.Once);
     }
 }

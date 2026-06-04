@@ -235,6 +235,42 @@
 
 ---
 
+## 2026-06-04 — feature/bank-accounts
+
+### Nested routes for bank account open/list
+**Decision:** Open and list bank accounts use client-scoped routes (`GET /api/clients/{clientId}/accounts`, `POST /api/clients/{clientId}/accounts`). Close uses an account-centric route (`PATCH /api/accounts/{id}/close`).
+**Why:** Open and list are inherently client-scoped operations — the clientId is required input, so embedding it in the URL makes the ownership relationship explicit and RESTful. Close operates on a known account ID and does not need the clientId in the URL.
+
+### IBAN uniqueness via DB index, not service-layer check alone
+**Decision:** A unique index on `BankAccounts.IBAN` is added via migration (`AddBankAccountIbanUniqueIndex`). The service also calls `ExistsByIbanAsync` before insert and throws `ConflictException`.
+**Why:** The service-layer check has a TOCTOU race condition under concurrent inserts. The DB index is the authoritative uniqueness guarantee. The service check provides a clean `409 Conflict` response before hitting the DB constraint, which would otherwise surface as an unhandled exception.
+
+### BankAccountMapper static class
+**Decision:** Static `BankAccountMapper` in `Mappers/BankAccounts/` following the same pattern as `ClientMapper`.
+**Why:** Consistent with the established mapper pattern. Mapping logic is shared between the service and any future controllers without duplication.
+
+---
+
+## 2026-06-05 — feature/bank-accounts updates
+
+### Soft delete on BankAccounts instead of hard delete
+**Decision:** `BankAccount` has an `IsDeleted` bool (default false). `DeleteAsync` sets `IsDeleted = true`; `GetByIdAsync` and `GetAllByClientIdAsync` filter `IsDeleted = false`. Hard delete is never performed.
+**Why:** Bank accounts have financial history (credits, installments, audit logs) that must not be permanently erased. Soft delete keeps the row for compliance while making the account invisible to all normal queries. The `DELETE /api/accounts/{id}` endpoint is the only path to soft-delete and is restricted to Admin.
+
+### CloseAccount opened to Employee role
+**Decision:** `PATCH /api/accounts/{id}/close` changed from `[Authorize(Roles = "Admin")]` to `[Authorize(Roles = "Employee,Admin")]`. Physical deletion (`DELETE /api/accounts/{id}`) remains Admin-only.
+**Why:** Closing an account is a routine daily operation performed by employees during client off-boarding or account consolidation. Restricting it to Admin created an unnecessary bottleneck. Deletion is a destructive (irreversible even as soft-delete from the client perspective) action and stays Admin-only.
+
+### OpenAccountAsync loads client with User via GetByIdWithDetailsAsync
+**Decision:** `OpenAccountAsync` fetches the client using `GetByIdWithDetailsAsync` (which eager-loads the `User` navigation) instead of the base `GetByIdAsync`.
+**Why:** The `IsActive` check requires `client.User.IsActive`. Using `GetByIdAsync` would return a `Client` with a null `User` navigation, requiring a second query or lazy loading. `GetByIdWithDetailsAsync` is already defined in `IClientRepository` and loads the full graph in one query.
+
+### Inactive client guard on account opening
+**Decision:** `OpenAccountAsync` throws `ValidationException("Cannot open an account for an inactive client.")` if `client.User.IsActive == false`.
+**Why:** Opening an account for a deactivated client creates an orphaned financial record — the client cannot log in or be managed normally. Blocking at the service layer prevents this inconsistency and returns a clear `400 Bad Request` to the caller.
+
+---
+
 ## Template for new decisions
 
 ```markdown

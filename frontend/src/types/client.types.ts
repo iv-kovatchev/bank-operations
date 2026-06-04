@@ -1,7 +1,9 @@
-export enum ClientType {
-  Individual = 'Individual',
-  Corporate = 'Corporate',
-}
+export const ClientType = {
+  Individual: 'Individual',
+  Corporate: 'Corporate',
+} as const;
+
+export type ClientType = typeof ClientType[keyof typeof ClientType];
 
 export interface ClientResponse {
   id: string;

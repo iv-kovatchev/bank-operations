@@ -8,6 +8,7 @@ import Button from '../../../../components/Button/Button';
 import Badge from '../../../../components/Badge/Badge';
 import IndividualClientForm from '../components/IndividualClientForm/IndividualClientForm';
 import CorporateClientForm from '../components/CorporateClientForm/CorporateClientForm';
+import AccountsSection from '../components/AccountsSection/AccountsSection';
 import { ClientType } from '../../../../types/client.types';
 import type { IndividualClientResponse, CorporateClientResponse } from '../../../../types/client.types';
 
@@ -123,8 +124,7 @@ const ClientDetailPage = () => {
         </Grid>
       </Card>
 
-      <Heading size="4" mb="2">Accounts</Heading>
-      <Text color="gray" mb="5">Coming soon...</Text>
+      <AccountsSection clientId={client.id} role={role ?? ''} />
 
       <Heading size="4" mb="2" mt="5">Credits</Heading>
       <Text color="gray">Coming soon...</Text>

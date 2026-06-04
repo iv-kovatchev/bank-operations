@@ -24,6 +24,7 @@ public class BankAccountServiceTests
         {
             ClientId = clientId,
             CreatedByUserId = Guid.NewGuid(),
+            User = new ApplicationUser { IsActive = true, FirstName = "Test", LastName = "Client" },
             FirstName = "Test",
             LastName = "Client",
             EGN = "1234567890"
@@ -76,7 +77,7 @@ public class BankAccountServiceTests
         var clientId = Guid.NewGuid();
         var createdByUserId = Guid.NewGuid();
         var dto = new CreateBankAccountDto { IBAN = "BG99BANK00000000000001", InitialBalance = 500 };
-        _clientRepoMock.Setup(r => r.GetByIdAsync(clientId)).ReturnsAsync(MakeClient(clientId));
+        _clientRepoMock.Setup(r => r.GetByIdWithDetailsAsync(clientId)).ReturnsAsync(MakeClient(clientId));
         _repoMock.Setup(r => r.ExistsByIbanAsync(dto.IBAN)).ReturnsAsync(false);
         _repoMock.Setup(r => r.AddAsync(It.IsAny<BankAccount>())).Returns(Task.CompletedTask);
         _repoMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
@@ -100,7 +101,7 @@ public class BankAccountServiceTests
     {
         // Arrange
         var clientId = Guid.NewGuid();
-        _clientRepoMock.Setup(r => r.GetByIdAsync(clientId)).ReturnsAsync((Client?)null);
+        _clientRepoMock.Setup(r => r.GetByIdWithDetailsAsync(clientId)).ReturnsAsync((Client?)null);
         var service = CreateService();
 
         // Act & Assert
@@ -114,12 +115,28 @@ public class BankAccountServiceTests
         // Arrange
         var clientId = Guid.NewGuid();
         var dto = new CreateBankAccountDto { IBAN = "BG99BANK00000000000001", InitialBalance = 0 };
-        _clientRepoMock.Setup(r => r.GetByIdAsync(clientId)).ReturnsAsync(MakeClient(clientId));
+        _clientRepoMock.Setup(r => r.GetByIdWithDetailsAsync(clientId)).ReturnsAsync(MakeClient(clientId));
         _repoMock.Setup(r => r.ExistsByIbanAsync(dto.IBAN)).ReturnsAsync(true);
         var service = CreateService();
 
         // Act & Assert
         await Should.ThrowAsync<ConflictException>(() =>
+            service.OpenAccountAsync(clientId, dto, Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task OpenAccountAsync_ThrowsValidationException_WhenClientIsInactive()
+    {
+        // Arrange
+        var clientId = Guid.NewGuid();
+        var dto = new CreateBankAccountDto { IBAN = "BG99BANK00000000000001", InitialBalance = 0 };
+        var inactiveClient = MakeClient(clientId);
+        inactiveClient.User.IsActive = false;
+        _clientRepoMock.Setup(r => r.GetByIdWithDetailsAsync(clientId)).ReturnsAsync(inactiveClient);
+        var service = CreateService();
+
+        // Act & Assert
+        await Should.ThrowAsync<ValidationException>(() =>
             service.OpenAccountAsync(clientId, dto, Guid.NewGuid()));
     }
 
@@ -156,5 +173,35 @@ public class BankAccountServiceTests
 
         // Act & Assert
         await Should.ThrowAsync<NotFoundException>(() => service.CloseAccountAsync(accountId));
+    }
+
+    [Fact]
+    public async Task DeleteAccountAsync_SetsIsDeleted_WhenAccountExists()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        var account = MakeAccount(Guid.NewGuid());
+        account.Id = accountId;
+        _repoMock.Setup(r => r.GetByIdAsync(accountId)).ReturnsAsync(account);
+        _repoMock.Setup(r => r.DeleteAsync(accountId)).Returns(Task.CompletedTask);
+        var service = CreateService();
+
+        // Act
+        await service.DeleteAccountAsync(accountId);
+
+        // Assert
+        _repoMock.Verify(r => r.DeleteAsync(accountId), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAccountAsync_ThrowsNotFoundException_WhenAccountNotFound()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        _repoMock.Setup(r => r.GetByIdAsync(accountId)).ReturnsAsync((BankAccount?)null);
+        var service = CreateService();
+
+        // Act & Assert
+        await Should.ThrowAsync<NotFoundException>(() => service.DeleteAccountAsync(accountId));
     }
 }
