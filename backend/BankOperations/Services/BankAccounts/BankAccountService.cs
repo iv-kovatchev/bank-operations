@@ -30,8 +30,11 @@ public class BankAccountService : IBankAccountService
 
     public async Task<BankAccountResponseDto> OpenAccountAsync(Guid clientId, CreateBankAccountDto dto, Guid createdByUserId)
     {
-        var client = await _clientRepository.GetByIdAsync(clientId)
+        var client = await _clientRepository.GetByIdWithDetailsAsync(clientId)
             ?? throw new NotFoundException("Client", clientId);
+
+        if (!client.User.IsActive)
+            throw new ValidationException("Cannot open an account for an inactive client.");
 
         if (await _bankAccountRepository.ExistsByIbanAsync(dto.IBAN))
             throw new ConflictException($"IBAN {dto.IBAN} already exists.");
@@ -60,6 +63,14 @@ public class BankAccountService : IBankAccountService
         account.Status = AccountStatus.Closed;
         await _bankAccountRepository.UpdateAsync(account);
         await _bankAccountRepository.SaveChangesAsync();
+    }
+
+    public async Task DeleteAccountAsync(Guid id)
+    {
+        var account = await _bankAccountRepository.GetByIdAsync(id)
+            ?? throw new NotFoundException("BankAccount", id);
+
+        await _bankAccountRepository.DeleteAsync(account.Id);
     }
 
 }

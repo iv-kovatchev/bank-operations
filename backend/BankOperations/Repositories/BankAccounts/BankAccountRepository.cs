@@ -14,7 +14,7 @@ public class BankAccountRepository : IBankAccountRepository
     }
 
     public async Task<BankAccount?> GetByIdAsync(Guid id)
-        => await _context.BankAccounts.FindAsync(id);
+        => await _context.BankAccounts.FirstOrDefaultAsync(ba => ba.Id == id && !ba.IsDeleted);
 
     public async Task<IEnumerable<BankAccount>> GetAllAsync()
         => await _context.BankAccounts.ToListAsync();
@@ -28,7 +28,10 @@ public class BankAccountRepository : IBankAccountRepository
     public async Task DeleteAsync(Guid id)
     {
         var entity = await GetByIdAsync(id);
-        if (entity != null) _context.BankAccounts.Remove(entity);
+        if (entity == null) return;
+        entity.IsDeleted = true;
+        _context.BankAccounts.Update(entity);
+        await _context.SaveChangesAsync();
     }
 
     public async Task SaveChangesAsync()
@@ -37,7 +40,7 @@ public class BankAccountRepository : IBankAccountRepository
     public async Task<IEnumerable<BankAccount>> GetAllByClientIdAsync(Guid clientId)
         => await _context.BankAccounts
             .Include(ba => ba.CreatedByUser)
-            .Where(ba => ba.ClientId == clientId)
+            .Where(ba => ba.ClientId == clientId && !ba.IsDeleted)
             .ToListAsync();
 
     public async Task<bool> ExistsByIbanAsync(string iban)

@@ -139,4 +139,72 @@ public class BankAccountRepositoryTests
         // Assert
         result.ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task GetByIdAsync_ReturnsNull_WhenAccountIsSoftDeleted()
+    {
+        // Arrange
+        await using var context = CreateDbContext();
+        var account = MakeAccount(Guid.NewGuid());
+        account.IsDeleted = true;
+        await context.BankAccounts.AddAsync(account);
+        await context.SaveChangesAsync();
+        var repository = new BankAccountRepository(context);
+
+        // Act
+        var result = await repository.GetByIdAsync(account.Id);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetAllByClientIdAsync_ExcludesSoftDeletedAccounts()
+    {
+        // Arrange
+        await using var context = CreateDbContext();
+        var clientId = Guid.NewGuid();
+        var createdByUserId = Guid.NewGuid();
+        await context.Users.AddAsync(new ApplicationUser
+        {
+            Id = createdByUserId,
+            Email = "softdelete@test.com",
+            UserName = "softdelete@test.com",
+            FirstName = "Soft",
+            LastName = "Delete"
+        });
+        await context.SaveChangesAsync();
+
+        await context.BankAccounts.AddRangeAsync(
+            new BankAccount { ClientId = clientId, IBAN = "BG99BANK00000000000010", Balance = 1000, Status = AccountStatus.Active, CreatedAt = DateTime.UtcNow, CreatedByUserId = createdByUserId },
+            new BankAccount { ClientId = clientId, IBAN = "BG99BANK00000000000011", Balance = 500, Status = AccountStatus.Active, CreatedAt = DateTime.UtcNow, CreatedByUserId = createdByUserId, IsDeleted = true });
+        await context.SaveChangesAsync();
+        var repository = new BankAccountRepository(context);
+
+        // Act
+        var result = await repository.GetAllByClientIdAsync(clientId);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.ShouldAllBe(a => !a.IsDeleted);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_SetIsDeletedTrue()
+    {
+        // Arrange
+        await using var context = CreateDbContext();
+        var account = MakeAccount(Guid.NewGuid());
+        await context.BankAccounts.AddAsync(account);
+        await context.SaveChangesAsync();
+        var repository = new BankAccountRepository(context);
+
+        // Act
+        await repository.DeleteAsync(account.Id);
+
+        // Assert
+        var updated = await context.BankAccounts.FindAsync(account.Id);
+        updated.ShouldNotBeNull();
+        updated!.IsDeleted.ShouldBeTrue();
+    }
 }

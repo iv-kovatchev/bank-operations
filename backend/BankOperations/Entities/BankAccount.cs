@@ -11,6 +11,7 @@ public class BankAccount : BaseEntity
     public Guid ClientId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Guid CreatedByUserId { get; set; }
+    public bool IsDeleted { get; set; } = false;
 
     // Navigation properties
     public Client Client { get; set; } = null!;

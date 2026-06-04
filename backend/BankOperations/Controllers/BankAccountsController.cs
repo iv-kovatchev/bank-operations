@@ -42,10 +42,18 @@ public class BankAccountsController : ControllerBase
     }
 
     [HttpPatch("~/api/accounts/{id}/close")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Employee,Admin")]
     public async Task<IActionResult> CloseAccount(Guid id)
     {
         await _bankAccountService.CloseAccountAsync(id);
+        return NoContent();
+    }
+
+    [HttpDelete("~/api/accounts/{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteAccount(Guid id)
+    {
+        await _bankAccountService.DeleteAccountAsync(id);
         return NoContent();
     }
 }

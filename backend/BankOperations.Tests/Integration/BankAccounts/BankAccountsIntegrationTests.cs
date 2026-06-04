@@ -139,13 +139,45 @@ public class BankAccountsIntegrationTests : IClassFixture<BankOperationsWebAppli
     }
 
     [Fact]
-    public async Task CloseAccount_Returns403_WhenEmployee()
+    public async Task CloseAccount_Returns404_WhenEmployee_AccountNotFound()
+    {
+        // Arrange — employees are now authorized; a random account ID yields 404 from service
+        var employeeClient = CreateAuthenticatedClient(EmployeeUserId, "Employee");
+
+        // Act
+        var response = await employeeClient.PatchAsync($"/api/accounts/{Guid.NewGuid()}/close", null);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task DeleteAccount_Returns204_WhenAdmin()
+    {
+        // Arrange
+        var adminClient = CreateAuthenticatedClient(AdminUserId, "Admin");
+        var clientId = await CreateClientAsync(adminClient, "1010101010", "bankacct.delete1@example.com");
+
+        var openDto = new CreateBankAccountDto { IBAN = "BG99BANK00000000000004", InitialBalance = 0 };
+        var openResponse = await adminClient.PostAsync($"/api/clients/{clientId}/accounts", JsonBody(openDto));
+        var account = JsonSerializer.Deserialize<BankAccountResponseDto>(
+            await openResponse.Content.ReadAsStringAsync(), JsonOptions);
+
+        // Act
+        var response = await adminClient.DeleteAsync($"/api/accounts/{account!.Id}");
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task DeleteAccount_Returns403_WhenEmployee()
     {
         // Arrange — auth check runs before service; no real account needed
         var employeeClient = CreateAuthenticatedClient(EmployeeUserId, "Employee");
 
         // Act
-        var response = await employeeClient.PatchAsync($"/api/accounts/{Guid.NewGuid()}/close", null);
+        var response = await employeeClient.DeleteAsync($"/api/accounts/{Guid.NewGuid()}");
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
