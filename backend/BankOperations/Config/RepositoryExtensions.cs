@@ -1,4 +1,5 @@
-﻿using BankOperations.Repositories.Clients;
+﻿using BankOperations.Repositories.BankAccounts;
+using BankOperations.Repositories.Clients;
 using BankOperations.Repositories.Otp;
 using BankOperations.Repositories.Token;
 
@@ -11,6 +12,7 @@ public static class RepositoryExtensions
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IOtpRepository, OtpRepository>();
         services.AddScoped<IClientRepository, ClientRepository>();
+        services.AddScoped<IBankAccountRepository, BankAccountRepository>();
         return services;
     }
 }

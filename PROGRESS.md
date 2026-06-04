@@ -158,6 +158,19 @@
   - `DataSeeder`: seeds `employee1@bank.com` and `employee2@bank.com` (password: `Employee@123`) in all environments
   - `Program.cs`: `IsEnvironment("Testing")` branch uses InMemory DB; production uses SQL Server with retry-on-failure
   - All service and controller tests updated to reflect new method signatures
+  - `FormModal` — generic reusable Dialog wrapper in `src/components/FormModal/FormModal.tsx`; accepts `title`, `open`, `onClose`, `children`; used for all create/edit forms
+  - `ConfirmModal` — reusable confirmation dialog in `src/components/ConfirmModal/ConfirmModal.tsx`; accepts `title`, `description`, `confirmLabel`, `confirmColor`, `isLoading`, `onConfirm`, `onCancel`
+  - `Button` — reusable wrapper around Radix Button with uppercase text and letter-spacing in `src/components/Button/Button.tsx`
+  - `Badge` — reusable wrapper around Radix Badge with outline variant and border-color fix for dark theme in `src/components/Badge/Badge.tsx`
+  - Sidebar redesigned — icons (`@radix-ui/react-icons`), uppercase labels, drop-shadow instead of border, responsive (hamburger on mobile)
+  - Header responsive — ellipsis on long usernames, hamburger toggle for sidebar on mobile
+  - Search/filter above each table — Select dropdown (filter by) + TextField (search term), right-aligned, responsive
+  - Empty state in tables — "No clients" centered text when filtered results are empty
+  - Activate endpoint added to backend — `PATCH /api/clients/:id/activate` (Admin only), symmetric to deactivate
+  - 204 No Content fix in `http.ts` — `handleResponse` returns `undefined` instead of calling `response.json()` on empty responses
+  - `queryClient.clear()` on logout — clears React Query cache to prevent stale role/data after logout
+  - `staticwebapp.config.json` — added `mimeTypes` for `.js`/`.mjs`/`.wasm` to fix MIME type error on Azure Static Web Apps
+  - `cursor: pointer` fix — `--cursor-button` CSS variable overridden in `.radix-themes` to apply pointer cursor on all buttons globally
 - [x] `feature/frontend-clients` — Clients CRUD frontend (Individual + Corporate) — `2026-06-02`
 - [ ] `feature/bank-accounts` + `feature/frontend-accounts` — Bank Accounts CRUD
 - [ ] `feature/credits` + `feature/frontend-credits` — Credits (Consumer + Mortgage) + Repayment Plan generation

@@ -20,5 +20,7 @@ public class BankAccountConfiguration : IEntityTypeConfiguration<BankAccount>
             .WithMany()
             .HasForeignKey(ba => ba.CreatedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(ba => ba.IBAN).IsUnique();
     }
 }
