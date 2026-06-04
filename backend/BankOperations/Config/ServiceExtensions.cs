@@ -1,4 +1,5 @@
 using BankOperations.Services.Auth;
+using BankOperations.Services.BankAccounts;
 using BankOperations.Services.Clients;
 using BankOperations.Services.Clients.CorporateClients;
 using BankOperations.Services.Clients.IndividualClients;
@@ -21,6 +22,7 @@ public static class ServiceExtensions
         services.AddScoped<IIndividualClientService, IndividualClientService>();
         services.AddScoped<ICorporateClientService, CorporateClientService>();
         services.AddScoped<IPasswordGenerator, PasswordGenerator>();
+        services.AddScoped<IBankAccountService, BankAccountService>();
         return services;
     }
 }

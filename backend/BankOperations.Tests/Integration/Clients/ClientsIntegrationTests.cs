@@ -96,6 +96,7 @@ public class BankOperationsWebApplicationFactory : WebApplicationFactory<Program
     }
 }
 
+[Collection("IntegrationTests")]
 public class ClientsIntegrationTests : IClassFixture<BankOperationsWebApplicationFactory>
 {
     private readonly BankOperationsWebApplicationFactory _factory;
