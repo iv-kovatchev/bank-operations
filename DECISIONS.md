@@ -251,6 +251,26 @@
 
 ---
 
+## 2026-06-05 — feature/bank-accounts updates
+
+### Soft delete on BankAccounts instead of hard delete
+**Decision:** `BankAccount` has an `IsDeleted` bool (default false). `DeleteAsync` sets `IsDeleted = true`; `GetByIdAsync` and `GetAllByClientIdAsync` filter `IsDeleted = false`. Hard delete is never performed.
+**Why:** Bank accounts have financial history (credits, installments, audit logs) that must not be permanently erased. Soft delete keeps the row for compliance while making the account invisible to all normal queries. The `DELETE /api/accounts/{id}` endpoint is the only path to soft-delete and is restricted to Admin.
+
+### CloseAccount opened to Employee role
+**Decision:** `PATCH /api/accounts/{id}/close` changed from `[Authorize(Roles = "Admin")]` to `[Authorize(Roles = "Employee,Admin")]`. Physical deletion (`DELETE /api/accounts/{id}`) remains Admin-only.
+**Why:** Closing an account is a routine daily operation performed by employees during client off-boarding or account consolidation. Restricting it to Admin created an unnecessary bottleneck. Deletion is a destructive (irreversible even as soft-delete from the client perspective) action and stays Admin-only.
+
+### OpenAccountAsync loads client with User via GetByIdWithDetailsAsync
+**Decision:** `OpenAccountAsync` fetches the client using `GetByIdWithDetailsAsync` (which eager-loads the `User` navigation) instead of the base `GetByIdAsync`.
+**Why:** The `IsActive` check requires `client.User.IsActive`. Using `GetByIdAsync` would return a `Client` with a null `User` navigation, requiring a second query or lazy loading. `GetByIdWithDetailsAsync` is already defined in `IClientRepository` and loads the full graph in one query.
+
+### Inactive client guard on account opening
+**Decision:** `OpenAccountAsync` throws `ValidationException("Cannot open an account for an inactive client.")` if `client.User.IsActive == false`.
+**Why:** Opening an account for a deactivated client creates an orphaned financial record — the client cannot log in or be managed normally. Blocking at the service layer prevents this inconsistency and returns a clear `400 Bad Request` to the caller.
+
+---
+
 ## Template for new decisions
 
 ```markdown
