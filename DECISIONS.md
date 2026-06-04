@@ -235,6 +235,22 @@
 
 ---
 
+## 2026-06-04 — feature/bank-accounts
+
+### Nested routes for bank account open/list
+**Decision:** Open and list bank accounts use client-scoped routes (`GET /api/clients/{clientId}/accounts`, `POST /api/clients/{clientId}/accounts`). Close uses an account-centric route (`PATCH /api/accounts/{id}/close`).
+**Why:** Open and list are inherently client-scoped operations — the clientId is required input, so embedding it in the URL makes the ownership relationship explicit and RESTful. Close operates on a known account ID and does not need the clientId in the URL.
+
+### IBAN uniqueness via DB index, not service-layer check alone
+**Decision:** A unique index on `BankAccounts.IBAN` is added via migration (`AddBankAccountIbanUniqueIndex`). The service also calls `ExistsByIbanAsync` before insert and throws `ConflictException`.
+**Why:** The service-layer check has a TOCTOU race condition under concurrent inserts. The DB index is the authoritative uniqueness guarantee. The service check provides a clean `409 Conflict` response before hitting the DB constraint, which would otherwise surface as an unhandled exception.
+
+### BankAccountMapper static class
+**Decision:** Static `BankAccountMapper` in `Mappers/BankAccounts/` following the same pattern as `ClientMapper`.
+**Why:** Consistent with the established mapper pattern. Mapping logic is shared between the service and any future controllers without duplication.
+
+---
+
 ## Template for new decisions
 
 ```markdown

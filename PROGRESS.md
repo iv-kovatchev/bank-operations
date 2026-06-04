@@ -172,7 +172,19 @@
   - `staticwebapp.config.json` — added `mimeTypes` for `.js`/`.mjs`/`.wasm` to fix MIME type error on Azure Static Web Apps
   - `cursor: pointer` fix — `--cursor-button` CSS variable overridden in `.radix-themes` to apply pointer cursor on all buttons globally
 - [x] `feature/frontend-clients` — Clients CRUD frontend (Individual + Corporate) — `2026-06-02`
-- [ ] `feature/bank-accounts` + `feature/frontend-accounts` — Bank Accounts CRUD
+- [x] `feature/bank-accounts` (backend) — Bank Accounts CRUD — `2026-06-04`
+  - `BankAccountsController`: `GET /api/clients/{clientId}/accounts`, `POST /api/clients/{clientId}/accounts`, `PATCH /api/accounts/{id}/close`
+  - `IBankAccountRepository` / `BankAccountRepository`: `ExistsByIbanAsync`, `GetAllByClientIdAsync` + standard CRUD
+  - `IBankAccountService` / `BankAccountService`: `GetAllByClientIdAsync`, `OpenAccountAsync`, `CloseAccountAsync`
+  - `BankAccountMapper` static class in `Mappers/BankAccounts/`
+  - Client ownership check on GET: Employee can only list accounts for clients they created; Admin sees all
+  - Migration `AddBankAccountIbanUniqueIndex` — unique index on `BankAccounts.IBAN`
+  - Registered in `Config/ServiceExtensions.cs` and `Config/RepositoryExtensions.cs`
+  - Unit tests: 17 (controller + service + repository layers)
+  - Integration tests: 6 (full HTTP pipeline)
+  - Total new tests: 23
+- [ ] `feature/frontend-accounts` — Bank Accounts frontend
+- [ ] `feature/credits` + `feature/frontend-credits` — Credits (Consumer + Mortgage) + Repayment Plan generation
 - [ ] `feature/credits` + `feature/frontend-credits` — Credits (Consumer + Mortgage) + Repayment Plan generation
 - [ ] `feature/installments` — Mark installment as paid + credit status check
 - [ ] `feature/activity-log` + `feature/frontend-admin` — Activity Log middleware + Employee management + Admin view
@@ -213,4 +225,6 @@
 - `2026-05-29` — Route layouts (`PublicLayout`, `AuthenticatedLayout`) defined once in `src/routes/index.tsx` using React Router nested routes with `<Outlet />`; pages never import `PageLayout` directly
 - `2026-05-29` — `ThemeContext` manages dark/light appearance; Radix `Theme` component receives `appearance` from `useTheme()` inside `App.tsx`; theme persisted in `localStorage`
 - `2026-05-29` — Context folders: `src/context/auth/` and `src/context/theme/`; each contains the def file, provider, and hook
+- `2026-06-04` — Bank Accounts use nested routes (`/api/clients/{clientId}/accounts`) for open/list to make client ownership explicit at the URL level; close uses `/api/accounts/{id}/close` (account-centric, no clientId needed)
+- `2026-06-04` — IBAN uniqueness enforced via a dedicated migration (`AddBankAccountIbanUniqueIndex`) rather than a check in the service layer, so the DB is the authoritative source of uniqueness
 
