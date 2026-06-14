@@ -200,7 +200,7 @@
   - `useTransactionForm` — Zod schema uses `z.preprocess` to coerce empty/invalid input to `undefined` before `z.number().min(0.01, ...)`, so empty input shows "Amount is required" instead of a NaN error; `useForm<TransactionFormInput, unknown, TransactionFormOutput>` (3-generic form) needed because `z.preprocess` makes input type `unknown` and output type `number`
   - `AccountsSection` — added Deposit (green) and Withdraw (amber) buttons for active accounts (role !== 'Client'), opening a shared `FormModal` rendering `TransactionForm`
   - `useAccountsSection` — all `AccountsSection` state/handlers (open/close/delete/deposit/withdraw modals) extracted into a co-located hook in `AccountsSection/useAccountsSection.ts`; component is render-only
-- [ ] `feature/frontend-accounts` — Bank Accounts frontend
+- [x] `feature/bank-accounts` (frontend) — Bank Accounts frontend (open/close/delete account, deposit/withdraw, responsive) — `2026-06-14`
 - [x] `feature/credit-services` (backend) — CreditServices CRUD — `2026-06-14`
   - `CreditServiceConfiguration` — added `Name` property + unique index `IX_CreditServices_Name`
   - `ICreditServiceRepository` / `CreditServiceRepository` — `ExistsByNameAsync` + standard CRUD

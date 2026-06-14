@@ -287,6 +287,18 @@
 
 ---
 
+## 2026-06-15 — feature/credit-services
+
+### JsonStringEnumConverter for enum serialization
+**Decision:** `JsonStringEnumConverter` added globally in `Program.cs` via `AddControllers().AddJsonOptions(...)`.
+**Why:** `CreditType` enum is sent as string from frontend (`"Consumer"`/`"Mortgage"`). Global converter is cleaner than per-DTO `[JsonConverter]` attributes and is consistent with how `ClientType` and `AccountStatus` work as string values throughout the project.
+
+### Radix Select requires key={field.value} for controlled value updates via reset()
+**Decision:** Radix `Select` requires `key={field.value}` on `Select.Root` when value is controlled via React Hook Form `Controller` + `reset()`.
+**Why:** Radix Select does not react to programmatic value changes after mount. Adding `key={field.value}` forces unmount/remount when the value changes, which correctly re-renders the selected option in edit mode.
+
+---
+
 ## Template for new decisions
 
 ```markdown
