@@ -213,6 +213,13 @@
   - Unit tests: `CreditServicesControllerTests` (9) + `CreditServiceServiceTests` (10) + `CreditServiceRepositoryTests` (8) — 27 new tests
   - Integration tests: `CreditServicesIntegrationTests` (11) — full HTTP pipeline with role checks
   - Total: 136 tests passing
+- [x] `feature/credit-services` (frontend) — Credit Services management page (Admin only) — `2026-06-15`
+  - `src/types/credit-service.types.ts` — `CreditType` as-const object (`Consumer`/`Mortgage`), `CreditServiceResponse`, `CreateCreditServiceDto`, `UpdateCreditServiceDto`
+  - 5 API hooks in `src/api/credit-services/`: `useGetCreditServices`, `useGetCreditService`, `useCreateCreditService`, `useUpdateCreditService`, `useDeleteCreditService`; mutations invalidate `['credit-services']` (update also invalidates `['credit-services', id]`)
+  - `CreditServiceForm/` — `CreditServiceForm.tsx` (render only) + `useCreditServiceForm.ts` + `creditServiceForm.schema.ts`; same `z.preprocess` + 3-generic `useForm<TInput, unknown, TOutput>` pattern as `TransactionForm`; `type` field uses Radix `Select` wired via `Controller` (not a native `<select>`, so `register` doesn't work directly)
+  - `CreditServicesPage.tsx` + `useCreditServicesPage.ts` — table (Name, Type, Interest Rate, Max Amount, Max Term, Actions), Add/Edit via shared `FormModal` + `CreditServiceForm`, Delete via `ConfirmModal`
+  - Route `/admin/credit-services` added under `AdminRoutes` in `src/routes/index.tsx`
+  - Sidebar: "Credit Services" item added to `ADMIN_ITEMS` with `CardStackIcon`
 - [ ] `feature/credits` + `feature/frontend-credits` — Credits (Consumer + Mortgage) + Repayment Plan generation
 - [ ] `feature/installments` — Mark installment as paid + credit status check
 - [ ] `feature/activity-log` + `feature/frontend-admin` — Activity Log middleware + Employee management + Admin view
