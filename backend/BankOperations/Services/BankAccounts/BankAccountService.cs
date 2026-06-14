@@ -55,10 +55,13 @@ public class BankAccountService : IBankAccountService
         return BankAccountMapper.ToDto(account);
     }
 
-    public async Task CloseAccountAsync(Guid id)
+    public async Task CloseAccountAsync(Guid id, Guid requestingUserId, bool isAdmin)
     {
-        var account = await _bankAccountRepository.GetByIdAsync(id)
+        var account = await _bankAccountRepository.GetByIdWithClientAsync(id)
             ?? throw new NotFoundException("BankAccount", id);
+
+        if (!isAdmin && account.Client.CreatedByUserId != requestingUserId)
+            throw new UnauthorizedException("You do not have access to this account.");
 
         account.Status = AccountStatus.Closed;
         await _bankAccountRepository.UpdateAsync(account);
@@ -71,6 +74,45 @@ public class BankAccountService : IBankAccountService
             ?? throw new NotFoundException("BankAccount", id);
 
         await _bankAccountRepository.DeleteAsync(account.Id);
+    }
+
+    public async Task<BankAccountResponseDto> DepositAsync(Guid id, decimal amount, Guid requestingUserId, bool isAdmin)
+    {
+        var account = await _bankAccountRepository.GetByIdWithClientAsync(id)
+            ?? throw new NotFoundException("BankAccount", id);
+
+        if (!isAdmin && account.Client.CreatedByUserId != requestingUserId)
+            throw new UnauthorizedException("You do not have access to this account.");
+
+        if (account.Status != AccountStatus.Active)
+            throw new ValidationException("Cannot deposit to a closed account.");
+
+        account.Balance += amount;
+        await _bankAccountRepository.UpdateAsync(account);
+        await _bankAccountRepository.SaveChangesAsync();
+
+        return BankAccountMapper.ToDto(account);
+    }
+
+    public async Task<BankAccountResponseDto> WithdrawAsync(Guid id, decimal amount, Guid requestingUserId, bool isAdmin)
+    {
+        var account = await _bankAccountRepository.GetByIdWithClientAsync(id)
+            ?? throw new NotFoundException("BankAccount", id);
+
+        if (!isAdmin && account.Client.CreatedByUserId != requestingUserId)
+            throw new UnauthorizedException("You do not have access to this account.");
+
+        if (account.Status != AccountStatus.Active)
+            throw new ValidationException("Cannot withdraw from a closed account.");
+
+        if (account.Balance < amount)
+            throw new ValidationException("Insufficient funds.");
+
+        account.Balance -= amount;
+        await _bankAccountRepository.UpdateAsync(account);
+        await _bankAccountRepository.SaveChangesAsync();
+
+        return BankAccountMapper.ToDto(account);
     }
 
 }

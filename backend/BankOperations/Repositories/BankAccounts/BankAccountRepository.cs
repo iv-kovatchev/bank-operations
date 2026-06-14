@@ -45,4 +45,9 @@ public class BankAccountRepository : IBankAccountRepository
 
     public async Task<bool> ExistsByIbanAsync(string iban)
         => await _context.BankAccounts.AnyAsync(ba => ba.IBAN == iban);
+
+    public async Task<BankAccount?> GetByIdWithClientAsync(Guid id)
+        => await _context.BankAccounts
+            .Include(ba => ba.Client)
+            .FirstOrDefaultAsync(ba => ba.Id == id && !ba.IsDeleted);
 }

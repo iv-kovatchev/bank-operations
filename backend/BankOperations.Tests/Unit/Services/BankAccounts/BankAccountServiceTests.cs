@@ -40,6 +40,17 @@ public class BankAccountServiceTests
         CreatedByUserId = Guid.NewGuid()
     };
 
+    private BankAccount MakeAccountWithClient(Guid accountId, Guid creatorId, decimal balance, AccountStatus status = AccountStatus.Active)
+    {
+        var account = MakeAccount(Guid.NewGuid());
+        account.Id = accountId;
+        account.Balance = balance;
+        account.Status = status;
+        account.Client = MakeClient(account.ClientId);
+        account.Client.CreatedByUserId = creatorId;
+        return account;
+    }
+
     [Fact]
     public async Task GetAllByClientIdAsync_ReturnsAccounts_WhenClientExists()
     {
@@ -145,10 +156,13 @@ public class BankAccountServiceTests
     {
         // Arrange
         var accountId = Guid.NewGuid();
+        var creatorId = Guid.NewGuid();
         var account = MakeAccount(Guid.NewGuid());
         account.Id = accountId;
+        account.Client = MakeClient(account.ClientId);
+        account.Client.CreatedByUserId = creatorId;
         BankAccount? captured = null;
-        _repoMock.Setup(r => r.GetByIdAsync(accountId)).ReturnsAsync(account);
+        _repoMock.Setup(r => r.GetByIdWithClientAsync(accountId)).ReturnsAsync(account);
         _repoMock.Setup(r => r.UpdateAsync(It.IsAny<BankAccount>()))
             .Callback<BankAccount>(a => captured = a)
             .Returns(Task.CompletedTask);
@@ -156,7 +170,7 @@ public class BankAccountServiceTests
         var service = CreateService();
 
         // Act
-        await service.CloseAccountAsync(accountId);
+        await service.CloseAccountAsync(accountId, creatorId, isAdmin: false);
 
         // Assert
         captured.ShouldNotBeNull();
@@ -168,11 +182,28 @@ public class BankAccountServiceTests
     {
         // Arrange
         var accountId = Guid.NewGuid();
-        _repoMock.Setup(r => r.GetByIdAsync(accountId)).ReturnsAsync((BankAccount?)null);
+        _repoMock.Setup(r => r.GetByIdWithClientAsync(accountId)).ReturnsAsync((BankAccount?)null);
         var service = CreateService();
 
         // Act & Assert
-        await Should.ThrowAsync<NotFoundException>(() => service.CloseAccountAsync(accountId));
+        await Should.ThrowAsync<NotFoundException>(() => service.CloseAccountAsync(accountId, Guid.NewGuid(), isAdmin: true));
+    }
+
+    [Fact]
+    public async Task CloseAccountAsync_ThrowsUnauthorizedException_WhenEmployeeDoesNotOwnAccount()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        var account = MakeAccount(Guid.NewGuid());
+        account.Id = accountId;
+        account.Client = MakeClient(account.ClientId);
+        account.Client.CreatedByUserId = Guid.NewGuid();
+        _repoMock.Setup(r => r.GetByIdWithClientAsync(accountId)).ReturnsAsync(account);
+        var service = CreateService();
+
+        // Act & Assert
+        await Should.ThrowAsync<UnauthorizedException>(() =>
+            service.CloseAccountAsync(accountId, Guid.NewGuid(), isAdmin: false));
     }
 
     [Fact]
@@ -203,5 +234,142 @@ public class BankAccountServiceTests
 
         // Act & Assert
         await Should.ThrowAsync<NotFoundException>(() => service.DeleteAccountAsync(accountId));
+    }
+
+    [Fact]
+    public async Task DepositAsync_IncreasesBalance_WhenAccountActive()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        var creatorId = Guid.NewGuid();
+        var account = MakeAccountWithClient(accountId, creatorId, balance: 1000);
+        _repoMock.Setup(r => r.GetByIdWithClientAsync(accountId)).ReturnsAsync(account);
+        _repoMock.Setup(r => r.UpdateAsync(It.IsAny<BankAccount>())).Returns(Task.CompletedTask);
+        _repoMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+        var service = CreateService();
+
+        // Act
+        var result = await service.DepositAsync(accountId, 500, creatorId, isAdmin: false);
+
+        // Assert
+        result.Balance.ShouldBe(1500);
+    }
+
+    [Fact]
+    public async Task DepositAsync_ThrowsNotFoundException_WhenAccountNotFound()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        _repoMock.Setup(r => r.GetByIdWithClientAsync(accountId)).ReturnsAsync((BankAccount?)null);
+        var service = CreateService();
+
+        // Act & Assert
+        await Should.ThrowAsync<NotFoundException>(() =>
+            service.DepositAsync(accountId, 100, Guid.NewGuid(), isAdmin: true));
+    }
+
+    [Fact]
+    public async Task DepositAsync_ThrowsUnauthorizedException_WhenEmployeeDoesNotOwnAccount()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        var account = MakeAccountWithClient(accountId, Guid.NewGuid(), balance: 1000);
+        _repoMock.Setup(r => r.GetByIdWithClientAsync(accountId)).ReturnsAsync(account);
+        var service = CreateService();
+
+        // Act & Assert
+        await Should.ThrowAsync<UnauthorizedException>(() =>
+            service.DepositAsync(accountId, 100, Guid.NewGuid(), isAdmin: false));
+    }
+
+    [Fact]
+    public async Task DepositAsync_ThrowsValidationException_WhenAccountClosed()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        var creatorId = Guid.NewGuid();
+        var account = MakeAccountWithClient(accountId, creatorId, balance: 1000, status: AccountStatus.Closed);
+        _repoMock.Setup(r => r.GetByIdWithClientAsync(accountId)).ReturnsAsync(account);
+        var service = CreateService();
+
+        // Act & Assert
+        await Should.ThrowAsync<ValidationException>(() =>
+            service.DepositAsync(accountId, 100, creatorId, isAdmin: false));
+    }
+
+    [Fact]
+    public async Task WithdrawAsync_DecreasesBalance_WhenSufficientFunds()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        var creatorId = Guid.NewGuid();
+        var account = MakeAccountWithClient(accountId, creatorId, balance: 1000);
+        _repoMock.Setup(r => r.GetByIdWithClientAsync(accountId)).ReturnsAsync(account);
+        _repoMock.Setup(r => r.UpdateAsync(It.IsAny<BankAccount>())).Returns(Task.CompletedTask);
+        _repoMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+        var service = CreateService();
+
+        // Act
+        var result = await service.WithdrawAsync(accountId, 400, creatorId, isAdmin: false);
+
+        // Assert
+        result.Balance.ShouldBe(600);
+    }
+
+    [Fact]
+    public async Task WithdrawAsync_ThrowsNotFoundException_WhenAccountNotFound()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        _repoMock.Setup(r => r.GetByIdWithClientAsync(accountId)).ReturnsAsync((BankAccount?)null);
+        var service = CreateService();
+
+        // Act & Assert
+        await Should.ThrowAsync<NotFoundException>(() =>
+            service.WithdrawAsync(accountId, 100, Guid.NewGuid(), isAdmin: true));
+    }
+
+    [Fact]
+    public async Task WithdrawAsync_ThrowsUnauthorizedException_WhenEmployeeDoesNotOwnAccount()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        var account = MakeAccountWithClient(accountId, Guid.NewGuid(), balance: 1000);
+        _repoMock.Setup(r => r.GetByIdWithClientAsync(accountId)).ReturnsAsync(account);
+        var service = CreateService();
+
+        // Act & Assert
+        await Should.ThrowAsync<UnauthorizedException>(() =>
+            service.WithdrawAsync(accountId, 100, Guid.NewGuid(), isAdmin: false));
+    }
+
+    [Fact]
+    public async Task WithdrawAsync_ThrowsValidationException_WhenAccountClosed()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        var creatorId = Guid.NewGuid();
+        var account = MakeAccountWithClient(accountId, creatorId, balance: 1000, status: AccountStatus.Closed);
+        _repoMock.Setup(r => r.GetByIdWithClientAsync(accountId)).ReturnsAsync(account);
+        var service = CreateService();
+
+        // Act & Assert
+        await Should.ThrowAsync<ValidationException>(() =>
+            service.WithdrawAsync(accountId, 100, creatorId, isAdmin: false));
+    }
+
+    [Fact]
+    public async Task WithdrawAsync_ThrowsValidationException_WhenInsufficientFunds()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        var creatorId = Guid.NewGuid();
+        var account = MakeAccountWithClient(accountId, creatorId, balance: 100);
+        _repoMock.Setup(r => r.GetByIdWithClientAsync(accountId)).ReturnsAsync(account);
+        var service = CreateService();
+
+        // Act & Assert
+        await Should.ThrowAsync<ValidationException>(() =>
+            service.WithdrawAsync(accountId, 200, creatorId, isAdmin: false));
     }
 }
