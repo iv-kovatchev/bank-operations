@@ -271,6 +271,18 @@
 
 ---
 
+## 2026-06-14 — feature/account-transactions
+
+### Ownership check on Close/Deposit/Withdraw via account.Client.CreatedByUserId
+**Decision:** `CloseAccountAsync`, `DepositAsync`, and `WithdrawAsync` take `(id, requestingUserId, isAdmin)` and throw `UnauthorizedException("You do not have access to this account.")` if `!isAdmin && account.Client.CreatedByUserId != requestingUserId`. A new repository method `GetByIdWithClientAsync` eager-loads the `Client` navigation so the check requires no extra query.
+**Why:** Employees must only operate on accounts belonging to clients they personally manage, consistent with the existing employee data-isolation model for `Clients` (see 2026-05-31 — Employee ownership checks). Ownership is anchored to the client record's creator (`Client.CreatedByUserId`), not the account's creator, so the rule stays consistent even if a different employee later opens an account for that client. Admins bypass the check entirely.
+
+### Deposit/Withdraw blocked on non-Active accounts
+**Decision:** `DepositAsync` throws `ValidationException("Cannot deposit to a closed account.")` and `WithdrawAsync` throws `ValidationException("Cannot withdraw from a closed account.")` if `account.Status != AccountStatus.Active`. `WithdrawAsync` additionally throws `ValidationException("Insufficient funds.")` if `account.Balance < amount`.
+**Why:** A closed account should not accumulate further financial activity — allowing transactions on it would make the `Closed` status meaningless and complicate any future reconciliation. Insufficient-funds is a basic invariant for a debit operation.
+
+---
+
 ## Template for new decisions
 
 ```markdown

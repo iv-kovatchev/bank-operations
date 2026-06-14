@@ -186,6 +186,13 @@
   - Unit tests: 20 (controller + service + repository layers)
   - Integration tests: 8 (full HTTP pipeline)
   - Total tests across project: 78 (41 clients + 20 bank account unit + 8 bank account integration - 3 updated existing + 20 new)
+- [x] `feature/account-transactions` (backend) — Deposit/Withdraw endpoints + ownership checks on Close/Deposit/Withdraw — `2026-06-14`
+  - `TransactionDto` — `Amount` with `[Range(0.01, double.MaxValue)]`
+  - `BankAccountsController`: `PATCH /api/accounts/{id}/deposit`, `PATCH /api/accounts/{id}/withdraw` (Employee,Admin)
+  - `IBankAccountRepository.GetByIdWithClientAsync(id)` — eager-loads `Client` navigation, filters `!IsDeleted`
+  - `IBankAccountService`: `CloseAccountAsync`, `DepositAsync`, `WithdrawAsync` now take `(id, requestingUserId, isAdmin)` and throw `UnauthorizedException` if `!isAdmin && account.Client.CreatedByUserId != requestingUserId`
+  - `DepositAsync`/`WithdrawAsync` throw `ValidationException` if account is not `Active`; `WithdrawAsync` also checks sufficient balance
+  - 19 new unit tests (controller + service + repository) + 4 new integration tests — 98 total tests passing
 - [ ] `feature/frontend-accounts` — Bank Accounts frontend
 - [ ] `feature/credits` + `feature/frontend-credits` — Credits (Consumer + Mortgage) + Repayment Plan generation
 - [ ] `feature/installments` — Mark installment as paid + credit status check
@@ -232,4 +239,5 @@
 - `2026-06-05` — BankAccount uses soft delete (`IsDeleted` flag) instead of hard delete; deleted accounts are invisible to `GetByIdAsync` and `GetAllByClientIdAsync` but the row is retained for audit purposes
 - `2026-06-05` — `CloseAccount` endpoint opened to `Employee,Admin` (was Admin only) — employees need to close accounts as part of daily operations; physical deletion remains Admin-only
 - `2026-06-05` — `OpenAccountAsync` calls `GetByIdWithDetailsAsync` (not `GetByIdAsync`) to eagerly load `client.User` so `IsActive` can be checked without a second query
+- `2026-06-14` — Integration tests for `feature/account-transactions` (Deposit/Withdraw) must use unique EGN/email/IBAN per test, and the client must be created by the same employee performing the transaction — ownership checks are anchored to `Client.CreatedByUserId`, so a client created by a different user causes `UnauthorizedException` (401) instead of the expected result
 

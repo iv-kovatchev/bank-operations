@@ -105,7 +105,7 @@ public class BankAccountsControllerTests
         // Arrange
         var accountId = Guid.NewGuid();
         var serviceMock = new Mock<IBankAccountService>();
-        serviceMock.Setup(s => s.CloseAccountAsync(accountId)).Returns(Task.CompletedTask);
+        serviceMock.Setup(s => s.CloseAccountAsync(accountId, It.IsAny<Guid>(), true)).Returns(Task.CompletedTask);
         var controller = CreateController(serviceMock.Object, Guid.NewGuid(), "Admin");
 
         // Act
@@ -113,7 +113,7 @@ public class BankAccountsControllerTests
 
         // Assert
         result.ShouldBeOfType<NoContentResult>();
-        serviceMock.Verify(s => s.CloseAccountAsync(accountId), Times.Once);
+        serviceMock.Verify(s => s.CloseAccountAsync(accountId, It.IsAny<Guid>(), true), Times.Once);
     }
 
     [Fact]
@@ -143,5 +143,75 @@ public class BankAccountsControllerTests
         // Assert
         result.ShouldBeOfType<NoContentResult>();
         serviceMock.Verify(s => s.DeleteAccountAsync(accountId), Times.Once);
+    }
+
+    [Fact]
+    public async Task Deposit_ReturnsOk_WhenEmployee()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        var dto = new TransactionDto { Amount = 100 };
+        var responseDto = new BankAccountResponseDto
+        {
+            Id = accountId,
+            IBAN = "BG99BANK00000000000001",
+            Balance = 1100,
+            Status = "Active"
+        };
+        var serviceMock = new Mock<IBankAccountService>();
+        serviceMock.Setup(s => s.DepositAsync(accountId, dto.Amount, It.IsAny<Guid>(), false)).ReturnsAsync(responseDto);
+        var controller = CreateController(serviceMock.Object, Guid.NewGuid(), "Employee");
+
+        // Act
+        var result = await controller.Deposit(accountId, dto);
+
+        // Assert
+        var ok = result.ShouldBeOfType<OkObjectResult>();
+        ok.Value.ShouldBe(responseDto);
+    }
+
+    [Fact]
+    public async Task Withdraw_ReturnsOk_WhenEmployee()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        var dto = new TransactionDto { Amount = 100 };
+        var responseDto = new BankAccountResponseDto
+        {
+            Id = accountId,
+            IBAN = "BG99BANK00000000000001",
+            Balance = 900,
+            Status = "Active"
+        };
+        var serviceMock = new Mock<IBankAccountService>();
+        serviceMock.Setup(s => s.WithdrawAsync(accountId, dto.Amount, It.IsAny<Guid>(), false)).ReturnsAsync(responseDto);
+        var controller = CreateController(serviceMock.Object, Guid.NewGuid(), "Employee");
+
+        // Act
+        var result = await controller.Withdraw(accountId, dto);
+
+        // Assert
+        var ok = result.ShouldBeOfType<OkObjectResult>();
+        ok.Value.ShouldBe(responseDto);
+    }
+
+    [Fact]
+    public void Deposit_RequiresEmployeeOrAdmin()
+    {
+        var method = typeof(BankAccountsController)
+            .GetMethod(nameof(BankAccountsController.Deposit));
+        var attr = method!.GetCustomAttribute<AuthorizeAttribute>();
+        attr.ShouldNotBeNull();
+        attr!.Roles.ShouldBe("Employee,Admin");
+    }
+
+    [Fact]
+    public void Withdraw_RequiresEmployeeOrAdmin()
+    {
+        var method = typeof(BankAccountsController)
+            .GetMethod(nameof(BankAccountsController.Withdraw));
+        var attr = method!.GetCustomAttribute<AuthorizeAttribute>();
+        attr.ShouldNotBeNull();
+        attr!.Roles.ShouldBe("Employee,Admin");
     }
 }

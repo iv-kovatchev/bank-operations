@@ -182,4 +182,99 @@ public class BankAccountsIntegrationTests : IClassFixture<BankOperationsWebAppli
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
+
+    [Fact]
+    public async Task Deposit_Returns200_WhenEmployee()
+    {
+        // Arrange
+        var employeeClient = CreateAuthenticatedClient(EmployeeUserId, "Employee");
+        var clientId = await CreateClientAsync(employeeClient, "2020202020", "txn.test1@example.com");
+
+        var openDto = new CreateBankAccountDto { IBAN = "BG99BANK00000000000005", InitialBalance = 0 };
+        var openResponse = await employeeClient.PostAsync($"/api/clients/{clientId}/accounts", JsonBody(openDto));
+        var account = JsonSerializer.Deserialize<BankAccountResponseDto>(
+            await openResponse.Content.ReadAsStringAsync(), JsonOptions);
+
+        var depositDto = new TransactionDto { Amount = 500 };
+
+        // Act
+        var response = await employeeClient.PatchAsync($"/api/accounts/{account!.Id}/deposit", JsonBody(depositDto));
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = JsonSerializer.Deserialize<BankAccountResponseDto>(
+            await response.Content.ReadAsStringAsync(), JsonOptions);
+        body!.Balance.ShouldBe(500);
+    }
+
+    [Fact]
+    public async Task Deposit_Returns400_WhenAmountIsZero()
+    {
+        // Arrange
+        var adminClient = CreateAuthenticatedClient(AdminUserId, "Admin");
+        var clientId = await CreateClientAsync(adminClient, "2121212121", "txn.test2@example.com");
+
+        var employeeClient = CreateAuthenticatedClient(EmployeeUserId, "Employee");
+        var openDto = new CreateBankAccountDto { IBAN = "BG99BANK00000000000006", InitialBalance = 0 };
+        var openResponse = await employeeClient.PostAsync($"/api/clients/{clientId}/accounts", JsonBody(openDto));
+        var account = JsonSerializer.Deserialize<BankAccountResponseDto>(
+            await openResponse.Content.ReadAsStringAsync(), JsonOptions);
+
+        var depositDto = new TransactionDto { Amount = 0 };
+
+        // Act
+        var response = await employeeClient.PatchAsync($"/api/accounts/{account!.Id}/deposit", JsonBody(depositDto));
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Withdraw_Returns200_WhenEmployee()
+    {
+        // Arrange
+        var employeeClient = CreateAuthenticatedClient(EmployeeUserId, "Employee");
+        var clientId = await CreateClientAsync(employeeClient, "3030303030", "txn.test5@example.com");
+
+        var openDto = new CreateBankAccountDto { IBAN = "BG99BANK00000000000015", InitialBalance = 0 };
+        var openResponse = await employeeClient.PostAsync($"/api/clients/{clientId}/accounts", JsonBody(openDto));
+        openResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var account = JsonSerializer.Deserialize<BankAccountResponseDto>(
+            await openResponse.Content.ReadAsStringAsync(), JsonOptions);
+
+        var depositResponse = await employeeClient.PatchAsync($"/api/accounts/{account!.Id}/deposit", JsonBody(new TransactionDto { Amount = 1000 }));
+        depositResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var withdrawDto = new TransactionDto { Amount = 500 };
+
+        // Act
+        var response = await employeeClient.PatchAsync($"/api/accounts/{account.Id}/withdraw", JsonBody(withdrawDto));
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = JsonSerializer.Deserialize<BankAccountResponseDto>(
+            await response.Content.ReadAsStringAsync(), JsonOptions);
+        body!.Balance.ShouldBe(500);
+    }
+
+    [Fact]
+    public async Task Withdraw_Returns400_WhenInsufficientFunds()
+    {
+        // Arrange
+        var employeeClient = CreateAuthenticatedClient(EmployeeUserId, "Employee");
+        var clientId = await CreateClientAsync(employeeClient, "2323232323", "txn.test4@example.com");
+
+        var openDto = new CreateBankAccountDto { IBAN = "BG99BANK00000000000008", InitialBalance = 0 };
+        var openResponse = await employeeClient.PostAsync($"/api/clients/{clientId}/accounts", JsonBody(openDto));
+        var account = JsonSerializer.Deserialize<BankAccountResponseDto>(
+            await openResponse.Content.ReadAsStringAsync(), JsonOptions);
+
+        var withdrawDto = new TransactionDto { Amount = 500 };
+
+        // Act
+        var response = await employeeClient.PatchAsync($"/api/accounts/{account!.Id}/withdraw", JsonBody(withdrawDto));
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
 }

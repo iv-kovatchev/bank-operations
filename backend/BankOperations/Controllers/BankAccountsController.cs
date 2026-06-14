@@ -45,7 +45,9 @@ public class BankAccountsController : ControllerBase
     [Authorize(Roles = "Employee,Admin")]
     public async Task<IActionResult> CloseAccount(Guid id)
     {
-        await _bankAccountService.CloseAccountAsync(id);
+        var requestingUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var isAdmin = User.IsInRole("Admin");
+        await _bankAccountService.CloseAccountAsync(id, requestingUserId, isAdmin);
         return NoContent();
     }
 
@@ -55,5 +57,25 @@ public class BankAccountsController : ControllerBase
     {
         await _bankAccountService.DeleteAccountAsync(id);
         return NoContent();
+    }
+
+    [HttpPatch("~/api/accounts/{id}/deposit")]
+    [Authorize(Roles = "Employee,Admin")]
+    public async Task<IActionResult> Deposit(Guid id, [FromBody] TransactionDto dto)
+    {
+        var requestingUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var isAdmin = User.IsInRole("Admin");
+        var result = await _bankAccountService.DepositAsync(id, dto.Amount, requestingUserId, isAdmin);
+        return Ok(result);
+    }
+
+    [HttpPatch("~/api/accounts/{id}/withdraw")]
+    [Authorize(Roles = "Employee,Admin")]
+    public async Task<IActionResult> Withdraw(Guid id, [FromBody] TransactionDto dto)
+    {
+        var requestingUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var isAdmin = User.IsInRole("Admin");
+        var result = await _bankAccountService.WithdrawAsync(id, dto.Amount, requestingUserId, isAdmin);
+        return Ok(result);
     }
 }

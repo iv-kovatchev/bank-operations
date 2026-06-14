@@ -1,5 +1,6 @@
 using BankOperations.Data;
 using BankOperations.Entities;
+using BankOperations.Entities.Clients;
 using BankOperations.Enums;
 using BankOperations.Repositories.BankAccounts;
 using Microsoft.EntityFrameworkCore;
@@ -187,6 +188,64 @@ public class BankAccountRepositoryTests
         // Assert
         result.Count().ShouldBe(1);
         result.ShouldAllBe(a => !a.IsDeleted);
+    }
+
+    [Fact]
+    public async Task GetByIdWithClientAsync_ReturnsAccountWithClient_WhenExists()
+    {
+        // Arrange
+        await using var context = CreateDbContext();
+        var clientId = Guid.NewGuid();
+        var user = new ApplicationUser
+        {
+            Id = clientId,
+            Email = "withclient@test.com",
+            UserName = "withclient@test.com",
+            FirstName = "With",
+            LastName = "Client",
+            IsActive = true
+        };
+        await context.Users.AddAsync(user);
+        await context.IndividualClients.AddAsync(new IndividualClient
+        {
+            ClientId = clientId,
+            CreatedByUserId = Guid.NewGuid(),
+            FirstName = "With",
+            LastName = "Client",
+            EGN = "1212121212"
+        });
+        await context.SaveChangesAsync();
+
+        var account = MakeAccount(clientId);
+        await context.BankAccounts.AddAsync(account);
+        await context.SaveChangesAsync();
+        var repository = new BankAccountRepository(context);
+
+        // Act
+        var result = await repository.GetByIdWithClientAsync(account.Id);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result!.Client.ShouldNotBeNull();
+        result.Client.ClientId.ShouldBe(clientId);
+    }
+
+    [Fact]
+    public async Task GetByIdWithClientAsync_ReturnsNull_WhenSoftDeleted()
+    {
+        // Arrange
+        await using var context = CreateDbContext();
+        var account = MakeAccount(Guid.NewGuid());
+        account.IsDeleted = true;
+        await context.BankAccounts.AddAsync(account);
+        await context.SaveChangesAsync();
+        var repository = new BankAccountRepository(context);
+
+        // Act
+        var result = await repository.GetByIdWithClientAsync(account.Id);
+
+        // Assert
+        result.ShouldBeNull();
     }
 
     [Fact]
