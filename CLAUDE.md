@@ -17,6 +17,8 @@ Available knowledge files (updated as features are completed):
 - @.claude/knowledge/clients/backend.md — Clients CRUD, TPT cast pattern, ClientMapper, PasswordGenerator, RoleClaimType fix, Swashbuckle version
 - @.claude/knowledge/clients/tests.md — xUnit/Moq/Shouldly setup, WebApplicationFactory pattern, InMemory DB branch, JWT token generation for tests
 - @.claude/knowledge/clients/frontend.md — ClientsListPage, ClientDetailPage, form hooks, ConfirmModal pattern, type narrowing, route reuse for Admin+Employee
+- @.claude/knowledge/bank-accounts/backend.md — BankAccountsController, soft delete, ownership check (GetByIdWithClientAsync), IBAN uniqueness, deposit/withdraw
+- @.claude/knowledge/bank-accounts/frontend.md — AccountsSection, TransactionForm, Zod preprocess + 3-generic useForm pattern
 
 ## Project Summary
 A closed, employee-only web application for managing bank clients, accounts, and credits.
