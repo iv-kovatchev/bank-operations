@@ -19,3 +19,7 @@ export interface CreateBankAccountDto {
   iban: string;
   initialBalance: number;
 }
+
+export interface TransactionDto {
+  amount: number;
+}

@@ -193,6 +193,11 @@
   - `IBankAccountService`: `CloseAccountAsync`, `DepositAsync`, `WithdrawAsync` now take `(id, requestingUserId, isAdmin)` and throw `UnauthorizedException` if `!isAdmin && account.Client.CreatedByUserId != requestingUserId`
   - `DepositAsync`/`WithdrawAsync` throw `ValidationException` if account is not `Active`; `WithdrawAsync` also checks sufficient balance
   - 19 new unit tests (controller + service + repository) + 4 new integration tests — 98 total tests passing
+- [x] `feature/account-transactions` (frontend) — Deposit/Withdraw UI on Accounts section — `2026-06-14`
+  - `TransactionDto` added to `src/types/bank-account.types.ts`
+  - `useDepositToAccount` / `useWithdrawFromAccount` — `PATCH /api/accounts/:id/deposit` / `/withdraw`, invalidate `['accounts', clientId]` on success
+  - `TransactionForm` (in `Clients/components/`, not its own folder) — React Hook Form + Zod (`amount` min 0.01), shared by both modes via `mode` prop
+  - `AccountsSection` — added Deposit (green) and Withdraw (amber) buttons for active accounts (role !== 'Client'), opening a shared `FormModal` rendering `TransactionForm`
 - [ ] `feature/frontend-accounts` — Bank Accounts frontend
 - [ ] `feature/credits` + `feature/frontend-credits` — Credits (Consumer + Mortgage) + Repayment Plan generation
 - [ ] `feature/installments` — Mark installment as paid + credit status check
