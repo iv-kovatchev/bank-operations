@@ -5,6 +5,7 @@ namespace BankOperations.Entities;
 
 public class CreditService : BaseEntity
 {
+    public string Name { get; set; } = string.Empty;
     public CreditType Type { get; set; }
     public decimal InterestRate { get; set; }
     public decimal MaxAmount { get; set; }

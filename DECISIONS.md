@@ -281,6 +281,22 @@
 **Decision:** `DepositAsync` throws `ValidationException("Cannot deposit to a closed account.")` and `WithdrawAsync` throws `ValidationException("Cannot withdraw from a closed account.")` if `account.Status != AccountStatus.Active`. `WithdrawAsync` additionally throws `ValidationException("Insufficient funds.")` if `account.Balance < amount`.
 **Why:** A closed account should not accumulate further financial activity — allowing transactions on it would make the `Closed` status meaningless and complicate any future reconciliation. Insufficient-funds is a basic invariant for a debit operation.
 
+### Zod `z.preprocess` + 3-generic `useForm` for numeric amount fields
+**Decision:** `TransactionForm`'s `amount` field schema is `z.preprocess((val) => (val === '' || val == null ? undefined : Number(val)), z.number({ error: 'Amount is required' }).min(0.01, 'Amount must be greater than 0'))`. `useTransactionForm` calls `useForm<TransactionFormInput, unknown, TransactionFormOutput>` where `TransactionFormInput = z.input<typeof schema>` (`{ amount: unknown }`) and `TransactionFormOutput = z.output<typeof schema>` (`{ amount: number }`).
+**Why:** A plain `z.number()` schema on a number input produces `NaN` (not `undefined`) when the field is cleared, which Zod reports as an unhelpful "Expected number, received nan" error. `z.preprocess` normalizes empty/invalid input to `undefined` so the `required_error`-equivalent message ("Amount is required") fires correctly. Because `preprocess` changes the input type to `unknown` while the output stays `number`, `zodResolver`'s inferred `Resolver` type no longer matches a single-generic `useForm<TransactionFormData>` — RHF's 3-generic `useForm<TFieldValues, TContext, TTransformedValues>` form resolves this without `any` casts.
+
+---
+
+## 2026-06-15 — feature/credit-services
+
+### JsonStringEnumConverter for enum serialization
+**Decision:** `JsonStringEnumConverter` added globally in `Program.cs` via `AddControllers().AddJsonOptions(...)`.
+**Why:** `CreditType` enum is sent as string from frontend (`"Consumer"`/`"Mortgage"`). Global converter is cleaner than per-DTO `[JsonConverter]` attributes and is consistent with how `ClientType` and `AccountStatus` work as string values throughout the project.
+
+### Radix Select requires key={field.value} for controlled value updates via reset()
+**Decision:** Radix `Select` requires `key={field.value}` on `Select.Root` when value is controlled via React Hook Form `Controller` + `reset()`.
+**Why:** Radix Select does not react to programmatic value changes after mount. Adding `key={field.value}` forces unmount/remount when the value changes, which correctly re-renders the selected option in edit mode.
+
 ---
 
 ## Template for new decisions

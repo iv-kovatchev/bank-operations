@@ -13,5 +13,7 @@ public class CreditServiceConfiguration : IEntityTypeConfiguration<CreditService
 
         builder.Property(cs => cs.MaxAmount)
             .HasPrecision(18, 2);
+
+        builder.HasIndex(cs => cs.Name).IsUnique();
     }
 }

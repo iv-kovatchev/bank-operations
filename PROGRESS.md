@@ -196,9 +196,30 @@
 - [x] `feature/account-transactions` (frontend) — Deposit/Withdraw UI on Accounts section — `2026-06-14`
   - `TransactionDto` added to `src/types/bank-account.types.ts`
   - `useDepositToAccount` / `useWithdrawFromAccount` — `PATCH /api/accounts/:id/deposit` / `/withdraw`, invalidate `['accounts', clientId]` on success
-  - `TransactionForm` (in `Clients/components/`, not its own folder) — React Hook Form + Zod (`amount` min 0.01), shared by both modes via `mode` prop
+  - `TransactionForm/` — own folder following the standard component pattern: `TransactionForm.tsx` (render only) + `useTransactionForm.ts` (form, mutation, submit logic), shared by both modes via `mode` prop
+  - `useTransactionForm` — Zod schema uses `z.preprocess` to coerce empty/invalid input to `undefined` before `z.number().min(0.01, ...)`, so empty input shows "Amount is required" instead of a NaN error; `useForm<TransactionFormInput, unknown, TransactionFormOutput>` (3-generic form) needed because `z.preprocess` makes input type `unknown` and output type `number`
   - `AccountsSection` — added Deposit (green) and Withdraw (amber) buttons for active accounts (role !== 'Client'), opening a shared `FormModal` rendering `TransactionForm`
-- [ ] `feature/frontend-accounts` — Bank Accounts frontend
+  - `useAccountsSection` — all `AccountsSection` state/handlers (open/close/delete/deposit/withdraw modals) extracted into a co-located hook in `AccountsSection/useAccountsSection.ts`; component is render-only
+- [x] `feature/bank-accounts` (frontend) — Bank Accounts frontend (open/close/delete account, deposit/withdraw, responsive) — `2026-06-14`
+- [x] `feature/credit-services` (backend) — CreditServices CRUD — `2026-06-14`
+  - `CreditServiceConfiguration` — added `Name` property + unique index `IX_CreditServices_Name`
+  - `ICreditServiceRepository` / `CreditServiceRepository` — `ExistsByNameAsync` + standard CRUD
+  - `ICreditServiceService` / `CreditServiceService` — `GetAllAsync`, `GetByIdAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`; `CreateAsync`/`UpdateAsync` throw `ConflictException` on duplicate `Name`, `GetByIdAsync`/`UpdateAsync`/`DeleteAsync` throw `NotFoundException`
+  - `CreditMapper` static class in `Mappers/Credits/` — `ToDto(CreditService)`
+  - `CreditServicesController` — `GET/POST /api/creditservices`, `GET/PUT/DELETE /api/creditservices/{id}`; GET endpoints `Employee,Admin`, write endpoints `Admin` only
+  - Migration `AddCredits` — adds `Name` (nvarchar(450), unique index) to `CreditServices`; applied to DB
+  - Registered in `Config/ServiceExtensions.cs` and `Config/RepositoryExtensions.cs`
+  - `CreditServiceEntity` type alias used in `CreditServiceService` to resolve the namespace/class/entity name collision (`Services.CreditServices.CreditServiceService` vs `Entities.CreditService`)
+  - Unit tests: `CreditServicesControllerTests` (9) + `CreditServiceServiceTests` (10) + `CreditServiceRepositoryTests` (8) — 27 new tests
+  - Integration tests: `CreditServicesIntegrationTests` (11) — full HTTP pipeline with role checks
+  - Total: 136 tests passing
+- [x] `feature/credit-services` (frontend) — Credit Services management page (Admin only) — `2026-06-15`
+  - `src/types/credit-service.types.ts` — `CreditType` as-const object (`Consumer`/`Mortgage`), `CreditServiceResponse`, `CreateCreditServiceDto`, `UpdateCreditServiceDto`
+  - 5 API hooks in `src/api/credit-services/`: `useGetCreditServices`, `useGetCreditService`, `useCreateCreditService`, `useUpdateCreditService`, `useDeleteCreditService`; mutations invalidate `['credit-services']` (update also invalidates `['credit-services', id]`)
+  - `CreditServiceForm/` — `CreditServiceForm.tsx` (render only) + `useCreditServiceForm.ts` + `creditServiceForm.schema.ts`; same `z.preprocess` + 3-generic `useForm<TInput, unknown, TOutput>` pattern as `TransactionForm`; `type` field uses Radix `Select` wired via `Controller` (not a native `<select>`, so `register` doesn't work directly)
+  - `CreditServicesPage.tsx` + `useCreditServicesPage.ts` — table (Name, Type, Interest Rate, Max Amount, Max Term, Actions), Add/Edit via shared `FormModal` + `CreditServiceForm`, Delete via `ConfirmModal`
+  - Route `/admin/credit-services` added under `AdminRoutes` in `src/routes/index.tsx`
+  - Sidebar: "Credit Services" item added to `ADMIN_ITEMS` with `CardStackIcon`
 - [ ] `feature/credits` + `feature/frontend-credits` — Credits (Consumer + Mortgage) + Repayment Plan generation
 - [ ] `feature/installments` — Mark installment as paid + credit status check
 - [ ] `feature/activity-log` + `feature/frontend-admin` — Activity Log middleware + Employee management + Admin view
