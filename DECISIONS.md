@@ -299,6 +299,22 @@
 
 ---
 
+## 2026-06-20 — feature/credits backend
+
+### CreditServiceEntity alias in the CreditService service class
+**Decision:** `CreditService` (the service class implementing `ICreditService`) uses `using CreditServiceEntity = BankOperations.Entities.CreditService;` to resolve the naming conflict with the service class itself.
+**Why:** Both the entity (`Entities.CreditService`) and the service class (`Services.Credits.CreditService`) are named `CreditService`. The alias makes parameter and variable types readable (`CreditServiceEntity creditService`) without renaming either class — consistent with the same pattern already used in `Services/CreditServices/CreditServiceService.cs`.
+
+### Credit update blocked once any installment is paid
+**Decision:** `UpdateConsumerCreditAsync`/`UpdateMortgageCreditAsync` throw `ValidationException("Cannot update a credit with paid installments.")` if any `RepaymentInstallment.PaidAt != null` on the credit's current plan. Updates are also blocked if `Credit.Status != CreditStatus.Active`.
+**Why:** Changing `Amount` or `TermMonths` requires regenerating the repayment plan from scratch. If installments have already been paid against the old plan's values, regenerating would silently invalidate that payment history (principal/interest breakdown, remaining balance) — there is no way to reconcile already-collected payments against a new schedule.
+
+### Shared generic validation helper for credit updates
+**Decision:** `ValidateAndPrepareUpdateAsync<T>(Guid id, Guid requestingUserId, bool isAdmin) where T : Credit` is a private helper in `CreditService` that loads the credit via `GetByIdWithDetailsAsync`, casts to `T` (throwing `NotFoundException` on mismatch), and runs the ownership check, active-status check, and paid-installments check. Both `UpdateConsumerCreditAsync` and `UpdateMortgageCreditAsync` call it as `await ValidateAndPrepareUpdateAsync<ConsumerCredit>(...)` / `<MortgageCredit>(...)`.
+**Why:** Both update methods had identical validation logic (load → cast → ownership → status → paid-installments) before the credit-type-specific field assignment. Extracting it into a generic helper eliminates the duplication while the `where T : Credit` constraint keeps the cast and the returned type fully type-safe — no `as Credit` boxing or extra casting needed in the calling methods.
+
+---
+
 ## Template for new decisions
 
 ```markdown

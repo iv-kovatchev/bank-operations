@@ -220,7 +220,20 @@
   - `CreditServicesPage.tsx` + `useCreditServicesPage.ts` — table (Name, Type, Interest Rate, Max Amount, Max Term, Actions), Add/Edit via shared `FormModal` + `CreditServiceForm`, Delete via `ConfirmModal`
   - Route `/admin/credit-services` added under `AdminRoutes` in `src/routes/index.tsx`
   - Sidebar: "Credit Services" item added to `ADMIN_ITEMS` with `CardStackIcon`
-- [ ] `feature/credits` + `feature/frontend-credits` — Credits (Consumer + Mortgage) + Repayment Plan generation
+- [x] `feature/credits` (backend) — Credits (Consumer + Mortgage) + annuity Repayment Plan generation — `2026-06-20`
+  - `CreditsController` — `GET /api/clients/{clientId}/credits`, `GET /api/credits/{id}`, `POST /api/clients/{clientId}/credits/consumer`, `POST /api/clients/{clientId}/credits/mortgage` (Employee,Admin), `PUT /api/credits/{id}/consumer`, `PUT /api/credits/{id}/mortgage` (Employee,Admin), `GET /api/credits/{id}/repayment-plan`; class-level `[Authorize(Roles = "Employee,Admin,Client")]` with Client self-access check on `GetAll` (`clientId == userId` from JWT, else `Forbid()`)
+  - `ICreditRepository` / `CreditRepository` — `GetAllByClientIdAsync` (eager-loads `Client`, `CreditService`), `GetByIdWithDetailsAsync` (eager-loads `Client`, `CreditService`, `RepaymentPlan.Installments` ordered by `InstallmentNumber`), `GetRepaymentPlanAsync` + standard CRUD
+  - `ICreditService` / `CreditService` — `GetAllByClientIdAsync`, `GetByIdAsync`, `GrantConsumerCreditAsync`, `GrantMortgageCreditAsync`, `UpdateConsumerCreditAsync`, `UpdateMortgageCreditAsync`, `GetRepaymentPlanAsync`
+  - `GrantConsumerCreditAsync`/`GrantMortgageCreditAsync` validate `Amount`/`TermMonths` against the selected `CreditService`'s `MaxAmount`/`MaxTermMonths`, throw `ValidationException` if the client is inactive, then generate and persist the annuity `RepaymentPlan` + `RepaymentInstallments` in the same transaction as the credit
+  - `UpdateConsumerCreditAsync`/`UpdateMortgageCreditAsync` block updates on non-`Active` credits or credits with any paid installment (`PaidAt != null`); on a valid update, the existing repayment plan/installments are deleted and regenerated from the new `Amount`/`TermMonths`/`CreditServiceId`
+  - Ownership check on all per-credit operations: Employee can only access credits of clients they created (`Client.CreatedByUserId == requestingUserId`); Admin bypasses; Client role can only list/view its own credits
+  - `CreditMapper` extended in `Mappers/Credits/` — `ToDto(Credit)` (dispatches Consumer/Mortgage), `ToDto(RepaymentPlan)`
+  - DTOs: `CreateConsumerCreditDto`, `UpdateConsumerCreditDto`, `CreateMortgageCreditDto`, `UpdateMortgageCreditDto`, `CreditResponseDto`, `RepaymentPlanResponseDto`, `RepaymentInstallmentResponseDto`
+  - Registered in `Config/ServiceExtensions.cs` (`ICreditService`) and `Config/RepositoryExtensions.cs` (`ICreditRepository`)
+  - Unit tests: `CreditsControllerTests` (10) + `CreditServiceTests` (21) + `CreditRepositoryTests` (12) — 43 new unit tests
+  - Integration tests: `CreditsIntegrationTests` (11) — full HTTP pipeline with role/ownership checks
+  - Total: 190 tests passing (136 previous + 54 new)
+- [ ] `feature/frontend-credits` — Credits (Consumer + Mortgage) frontend + Repayment Plan view
 - [ ] `feature/installments` — Mark installment as paid + credit status check
 - [ ] `feature/activity-log` + `feature/frontend-admin` — Activity Log middleware + Employee management + Admin view
 
@@ -266,4 +279,5 @@
 - `2026-06-05` — `CloseAccount` endpoint opened to `Employee,Admin` (was Admin only) — employees need to close accounts as part of daily operations; physical deletion remains Admin-only
 - `2026-06-05` — `OpenAccountAsync` calls `GetByIdWithDetailsAsync` (not `GetByIdAsync`) to eagerly load `client.User` so `IsActive` can be checked without a second query
 - `2026-06-14` — Integration tests for `feature/account-transactions` (Deposit/Withdraw) must use unique EGN/email/IBAN per test, and the client must be created by the same employee performing the transaction — ownership checks are anchored to `Client.CreatedByUserId`, so a client created by a different user causes `UnauthorizedException` (401) instead of the expected result
+- `2026-06-20` — `feature/credits` (backend) — granting a credit and updating a credit both regenerate the full `RepaymentPlan`/`RepaymentInstallments` in the same DB transaction as the credit change, so a credit and its plan can never be persisted out of sync
 
