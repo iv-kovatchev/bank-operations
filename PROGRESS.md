@@ -252,7 +252,16 @@
   - Route `/admin/employees` added under `AdminRoutes`; Sidebar "Employees" item added to `ADMIN_ITEMS`
   - No automated tests written — per the no-more-tests decision logged under the backend entry above
   - `feature/employees` now fully complete (backend + frontend) for its planned scope: list, create, activate, deactivate. Update flow and an employee detail page were never part of the planned scope and remain open if needed later.
-- [ ] `feature/frontend-credits` — Credits (Consumer + Mortgage) frontend + Repayment Plan view
+- [x] `feature/frontend-credits` — Credits (Consumer + Mortgage) frontend + Repayment Plan view — `2026-06-20`
+  - `src/types/credit.types.ts` — `CreditStatus`, `CreditPurpose`, `PropertyType` as-const objects; `CreditResponse`, `RepaymentPlanResponse`, `RepaymentInstallmentResponse`; Create/Update request interfaces for Consumer and Mortgage credits
+  - 7 API hooks in `src/api/credits/`: `useGetClientCredits`, `useGetCredit`, `useGetRepaymentPlan`, `useGrantConsumerCredit`, `useGrantMortgageCredit`, `useUpdateConsumerCredit`, `useUpdateMortgageCredit`
+  - `ConsumerCreditForm/` — form + co-located hook + schema; Credit Service dropdown filtered to Consumer-type services, plus a Purpose dropdown
+  - `MortgageCreditForm/` — form + co-located hook + schema; Credit Service dropdown filtered to Mortgage-type services, plus a Property Type dropdown
+  - `CreditsSection/` — table (Type, Amount, Term, Status, Created At, Actions) on the client detail page; Grant Consumer/Mortgage Credit buttons; per-row Edit (Active credits only) + Repayment Plan buttons; `FormModal`s for create/edit reuse the form components in `create`/`edit` mode
+  - `RepaymentPlanSection/` — Monthly Installment + Generated At header, installments table (#, Due Date, Principal, Interest, Total, Remaining Balance, Status); Status renders green "Paid" / gray "Pending" from `isPaid`; table wrapped in a horizontally-scrollable `Box`; rendered inside a `FormModal` with `maxWidth="900px"` for the wider column set
+  - `CreditsSection` and `RepaymentPlanSection` added to `ClientDetailPage`, below the existing `AccountsSection`
+  - `FormModal` extended with an optional `maxWidth` prop (defaults to `"480px"`) and `maxHeight="80vh"` on `Dialog.Content` so wide/tall modal content scrolls internally instead of the page behind it
+  - Schema files for earlier features moved to live alongside their forms instead of a shared file: `individualClientForm.schema.ts`, `corporateClientForm.schema.ts`, `openAccountForm.schema.ts` now co-located in their respective component folders
 - [ ] `feature/installments` — Mark installment as paid + credit status check
 - [ ] `feature/activity-log` (backend + frontend) — Auto-log all Employee/Admin operations; Admin view with filters
   - Backend: `IActivityLogService`, `ActivityLogService`, `IActivityLogRepository`, `ActivityLogRepository`, `ActivityLogsController`

@@ -323,6 +323,14 @@
 
 ---
 
+## 2026-06-20 — feature/frontend-credits
+
+### FormModal accepts an optional maxWidth prop
+**Decision:** `FormModal` accepts an optional `maxWidth` prop (default `"480px"`).
+**Why:** The RepaymentPlan table has many columns and needs more horizontal space. A generic prop keeps `FormModal` reusable without hardcoding widths per use case.
+
+---
+
 ## 2026-06-20 — feature/employees backend
 
 ### Employee has no separate entity or table
