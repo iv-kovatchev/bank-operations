@@ -148,6 +148,7 @@ const CreditsSection = ({ clientId, role }: CreditsSectionProps) => {
         open={repaymentPlanModal.open}
         title="Repayment Plan"
         onClose={handleCloseRepaymentPlan}
+        maxWidth="900px"
       >
         {repaymentPlanModal.creditId && (
           <RepaymentPlanSection creditId={repaymentPlanModal.creditId} />
