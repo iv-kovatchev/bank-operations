@@ -23,6 +23,7 @@ Available knowledge files (updated as features are completed):
 - @.claude/knowledge/employees/backend.md — Employee creation/list/activate/deactivate, no separate entity, reuses PasswordGenerator/EmailService (ActivityLogService deferred — not yet merged)
 - @.claude/knowledge/activity-log/backend.md — ActivityLog LogAsync (swallows exceptions), wired into Employees/Clients/BankAccounts/Credits, deferred methods needing signature change
 - @.claude/knowledge/activity-log/frontend.md — ActivityLogPage client-side filters, icon-only date input CSS
+- @.claude/knowledge/settings/backend.md — Change password (all roles) + profile update (Admin/Employee only), TPT name-duplication gotcha with Clients, UserManager-only (no repository)
 
 ## Project Summary
 A closed, employee-only web application for managing bank clients, accounts, and credits.
