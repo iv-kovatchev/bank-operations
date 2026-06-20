@@ -151,7 +151,7 @@ const CreditsSection = ({ clientId, role }: CreditsSectionProps) => {
         maxWidth="900px"
       >
         {repaymentPlanModal.creditId && (
-          <RepaymentPlanSection creditId={repaymentPlanModal.creditId} />
+          <RepaymentPlanSection creditId={repaymentPlanModal.creditId} clientId={clientId} role={role} />
         )}
       </FormModal>
     </>

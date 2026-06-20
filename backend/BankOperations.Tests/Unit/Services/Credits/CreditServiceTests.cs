@@ -5,6 +5,7 @@ using BankOperations.Entities.Clients;
 using BankOperations.Entities.Credits;
 using BankOperations.Enums;
 using BankOperations.Exceptions;
+using BankOperations.Repositories.BankAccounts;
 using BankOperations.Repositories.Clients;
 using BankOperations.Repositories.Credits;
 using BankOperations.Repositories.CreditServices;
@@ -19,9 +20,10 @@ public class CreditServiceTests
     private readonly Mock<ICreditRepository> _creditRepoMock = new();
     private readonly Mock<ICreditServiceRepository> _creditServiceRepoMock = new();
     private readonly Mock<IClientRepository> _clientRepoMock = new();
+    private readonly Mock<IBankAccountRepository> _bankAccountRepoMock = new();
 
     private BankOperations.Services.Credits.CreditService CreateService() =>
-        new(_creditRepoMock.Object, _creditServiceRepoMock.Object, _clientRepoMock.Object);
+        new(_creditRepoMock.Object, _creditServiceRepoMock.Object, _clientRepoMock.Object, _bankAccountRepoMock.Object);
 
     private static CreditServiceEntity MakeCreditService(decimal maxAmount = 10000, int maxTermMonths = 36) => new()
     {

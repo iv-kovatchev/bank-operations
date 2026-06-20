@@ -13,4 +13,6 @@ public interface ICreditService
     Task<CreditResponseDto> UpdateConsumerCreditAsync(Guid id, UpdateConsumerCreditDto dto, Guid requestingUserId, bool isAdmin);
     Task<CreditResponseDto> UpdateMortgageCreditAsync(Guid id, UpdateMortgageCreditDto dto, Guid requestingUserId, bool isAdmin);
     Task<RepaymentPlanResponseDto> GetRepaymentPlanAsync(Guid creditId, Guid requestingUserId, bool isAdmin);
+    Task<RepaymentInstallmentResponseDto> PayInstallmentAsync(Guid creditId, Guid installmentId, Guid bankAccountId, Guid requestingUserId, bool isAdmin);
+    Task<RepaymentInstallmentResponseDto> UnpayInstallmentAsync(Guid creditId, Guid installmentId, Guid requestingUserId, bool isAdmin);
 }

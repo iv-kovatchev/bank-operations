@@ -83,3 +83,7 @@ export interface UpdateMortgageCreditRequest {
   propertyAddress: string;
   propertyType: PropertyType;
 }
+
+export interface PayInstallmentRequest {
+  bankAccountId: string;
+}

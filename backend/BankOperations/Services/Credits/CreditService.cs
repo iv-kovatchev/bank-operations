@@ -6,6 +6,7 @@ using BankOperations.Entities.Credits;
 using BankOperations.Enums;
 using BankOperations.Exceptions;
 using BankOperations.Mappers.Credits;
+using BankOperations.Repositories.BankAccounts;
 using BankOperations.Repositories.Clients;
 using BankOperations.Repositories.Credits;
 using BankOperations.Repositories.CreditServices;
@@ -18,15 +19,18 @@ public class CreditService : ICreditService
     private readonly ICreditRepository _creditRepository;
     private readonly ICreditServiceRepository _creditServiceRepository;
     private readonly IClientRepository _clientRepository;
+    private readonly IBankAccountRepository _bankAccountRepository;
 
     public CreditService(
         ICreditRepository creditRepository,
         ICreditServiceRepository creditServiceRepository,
-        IClientRepository clientRepository)
+        IClientRepository clientRepository,
+        IBankAccountRepository bankAccountRepository)
     {
         _creditRepository = creditRepository;
         _creditServiceRepository = creditServiceRepository;
         _clientRepository = clientRepository;
+        _bankAccountRepository = bankAccountRepository;
     }
 
     public async Task<IEnumerable<CreditResponseDto>> GetAllByClientIdAsync(Guid clientId, Guid requestingUserId, bool isAdmin)
@@ -129,8 +133,9 @@ public class CreditService : ICreditService
         {
             creditService = await _creditServiceRepository.GetByIdAsync(dto.CreditServiceId)
                 ?? throw new NotFoundException("CreditService", dto.CreditServiceId);
-            ValidateCreditServiceLimits(creditService, dto.Amount, dto.TermMonths);
         }
+
+        ValidateCreditServiceLimits(creditService, dto.Amount, dto.TermMonths);
 
         cc.Purpose = dto.Purpose;
         cc.Amount = dto.Amount;
@@ -153,8 +158,9 @@ public class CreditService : ICreditService
         {
             creditService = await _creditServiceRepository.GetByIdAsync(dto.CreditServiceId)
                 ?? throw new NotFoundException("CreditService", dto.CreditServiceId);
-            ValidateCreditServiceLimits(creditService, dto.Amount, dto.TermMonths);
         }
+
+        ValidateCreditServiceLimits(creditService, dto.Amount, dto.TermMonths);
 
         mc.PropertyAddress = dto.PropertyAddress;
         mc.PropertyType = dto.PropertyType;
@@ -180,6 +186,73 @@ public class CreditService : ICreditService
             throw new NotFoundException("RepaymentPlan", creditId);
 
         return CreditMapper.ToDto(credit.RepaymentPlan);
+    }
+
+    public async Task<RepaymentInstallmentResponseDto> PayInstallmentAsync(Guid creditId, Guid installmentId, Guid bankAccountId, Guid requestingUserId, bool isAdmin)
+    {
+        var credit = await _creditRepository.GetByIdWithDetailsAsync(creditId)
+            ?? throw new NotFoundException("Credit", creditId);
+
+        if (!isAdmin && credit.Client.CreatedByUserId != requestingUserId)
+            throw new UnauthorizedException("You do not have access to this credit.");
+
+        if (credit.Status != CreditStatus.Active)
+            throw new ValidationException("Cannot pay an installment on a credit that is not active.");
+
+        var installment = credit.RepaymentPlan?.Installments.FirstOrDefault(i => i.Id == installmentId)
+            ?? throw new NotFoundException("RepaymentInstallment", installmentId);
+
+        if (installment.PaidAt != null)
+            throw new ValidationException("This installment is already paid.");
+
+        installment.PaidAt = DateTime.UtcNow;
+        installment.CreatedByUserId = requestingUserId;
+
+        var bankAccount = await _bankAccountRepository.GetByIdWithClientAsync(bankAccountId)
+            ?? throw new NotFoundException("BankAccount", bankAccountId);
+
+        if (bankAccount.Status != AccountStatus.Active)
+            throw new ValidationException("Cannot pay an installment from a closed account.");
+
+        decimal installmentTotal = installment.PrincipalPart + installment.InterestPart;
+
+        if (bankAccount.Balance < installmentTotal)
+            throw new ValidationException("Insufficient funds.");
+
+        bankAccount.Balance -= installmentTotal;
+        await _bankAccountRepository.UpdateAsync(bankAccount);
+
+        if (credit.RepaymentPlan!.Installments.All(i => i.PaidAt != null))
+            credit.Status = CreditStatus.PaidOff;
+
+        await _creditRepository.SaveChangesAsync();
+
+        return CreditMapper.ToDto(installment);
+    }
+
+    public async Task<RepaymentInstallmentResponseDto> UnpayInstallmentAsync(Guid creditId, Guid installmentId, Guid requestingUserId, bool isAdmin)
+    {
+        var credit = await _creditRepository.GetByIdWithDetailsAsync(creditId)
+            ?? throw new NotFoundException("Credit", creditId);
+
+        if (!isAdmin && credit.Client.CreatedByUserId != requestingUserId)
+            throw new UnauthorizedException("You do not have access to this credit.");
+
+        var installment = credit.RepaymentPlan?.Installments.FirstOrDefault(i => i.Id == installmentId)
+            ?? throw new NotFoundException("RepaymentInstallment", installmentId);
+
+        if (installment.PaidAt == null)
+            throw new ValidationException("This installment is not paid.");
+
+        installment.PaidAt = null;
+        installment.CreatedByUserId = null;
+
+        if (credit.Status == CreditStatus.PaidOff)
+            credit.Status = CreditStatus.Active;
+
+        await _creditRepository.SaveChangesAsync();
+
+        return CreditMapper.ToDto(installment);
     }
 
     private async Task<T> ValidateAndPrepareUpdateAsync<T>(Guid id, Guid requestingUserId, bool isAdmin) where T : Credit

@@ -67,7 +67,7 @@ public static class CreditMapper
         };
     }
 
-    private static RepaymentInstallmentResponseDto ToDto(RepaymentInstallment installment)
+    public static RepaymentInstallmentResponseDto ToDto(RepaymentInstallment installment)
     {
         return new RepaymentInstallmentResponseDto
         {

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using BankOperations.DTOs.Credits;
 using BankOperations.DTOs.Credits.ConsumerCredits;
 using BankOperations.DTOs.Credits.MortgageCredits;
 using BankOperations.Services.Credits;
@@ -90,6 +91,26 @@ public class CreditsController : ControllerBase
         var requestingUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var isAdmin = User.IsInRole("Admin");
         var result = await _creditService.GetRepaymentPlanAsync(id, requestingUserId, isAdmin);
+        return Ok(result);
+    }
+
+    [HttpPatch("~/api/credits/{creditId}/installments/{installmentId}/pay")]
+    [Authorize(Roles = "Employee,Admin")]
+    public async Task<IActionResult> PayInstallment(Guid creditId, Guid installmentId, [FromBody] PayInstallmentDto dto)
+    {
+        var requestingUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var isAdmin = User.IsInRole("Admin");
+        var result = await _creditService.PayInstallmentAsync(creditId, installmentId, dto.BankAccountId, requestingUserId, isAdmin);
+        return Ok(result);
+    }
+
+    [HttpPatch("~/api/credits/{creditId}/installments/{installmentId}/unpay")]
+    [Authorize(Roles = "Employee,Admin")]
+    public async Task<IActionResult> UnpayInstallment(Guid creditId, Guid installmentId)
+    {
+        var requestingUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var isAdmin = User.IsInRole("Admin");
+        var result = await _creditService.UnpayInstallmentAsync(creditId, installmentId, requestingUserId, isAdmin);
         return Ok(result);
     }
 }

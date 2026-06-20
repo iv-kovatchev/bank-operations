@@ -70,4 +70,9 @@ public class CreditRepository : ICreditRepository
             _context.RepaymentPlans.Remove(existingPlan);
         }
     }
+
+    public async Task<RepaymentInstallment?> GetInstallmentByIdAsync(Guid installmentId)
+        => await _context.RepaymentInstallments
+            .Include(i => i.RepaymentPlan)
+            .FirstOrDefaultAsync(i => i.Id == installmentId);
 }

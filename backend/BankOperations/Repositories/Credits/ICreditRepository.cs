@@ -10,4 +10,5 @@ public interface ICreditRepository : IRepository<Credit>
     Task<RepaymentPlan?> GetRepaymentPlanAsync(Guid creditId);
     Task AddRepaymentPlanAsync(RepaymentPlan plan);
     Task DeleteRepaymentPlanByCreditIdAsync(Guid creditId);
+    Task<RepaymentInstallment?> GetInstallmentByIdAsync(Guid installmentId);
 }
