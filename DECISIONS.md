@@ -315,6 +315,14 @@
 
 ---
 
+## 2026-06-20 — Parallel feature development
+
+### Parallel feature development
+**Decision:** `feature/employees`, `feature/activity-log`, and `feature/settings` are developed in parallel on separate feature branches and merged into `develop`.
+**Why:** These features are independent from the remaining core work (credits frontend, installments, client portal, dashboards) and share no endpoints or components with the active development track. Parallel development reduces total delivery time without risk of merge conflicts.
+
+---
+
 ## Template for new decisions
 
 ```markdown

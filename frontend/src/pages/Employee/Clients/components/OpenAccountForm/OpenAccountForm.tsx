@@ -4,8 +4,8 @@ import { Box, Flex, Text, TextField } from '@radix-ui/themes';
 import { useOpenAccount } from '../../../../../api/bank-accounts/useOpenAccount';
 import Button from '../../../../../components/Button/Button';
 import Toast from '../../../../../components/Toast/Toast';
-import { openAccountSchema } from '../openAccountForm.schema';
-import type { OpenAccountFormData } from '../openAccountForm.schema';
+import { openAccountSchema } from './openAccountForm.schema';
+import type { OpenAccountFormData } from './openAccountForm.schema';
 
 interface OpenAccountFormProps {
   clientId: string;
