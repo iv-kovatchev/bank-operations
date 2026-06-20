@@ -93,6 +93,7 @@ public static class DataSeeder
 
         await SeedCreditServicesAsync(context);
         await SeedClientsAccountsAndCreditsAsync(context, userManager, employeeDefs.Select(e => e.Email).ToArray());
+        await SeedActivityLogsAsync(context, userManager, employeeDefs.Select(e => e.Email).ToArray());
     }
 
     private static async Task SeedCreditServicesAsync(ApplicationDbContext context)
@@ -384,6 +385,65 @@ public static class DataSeeder
 
         plan.Installments = installments;
         return plan;
+    }
+
+    private static async Task SeedActivityLogsAsync(
+        ApplicationDbContext context,
+        UserManager<ApplicationUser> userManager,
+        string[] employeeEmails)
+    {
+        var hasLogs = await context.ActivityLogs.AnyAsync();
+        if (hasLogs) return;
+
+        var employees = new List<ApplicationUser>();
+        foreach (var email in employeeEmails)
+        {
+            var emp = await userManager.FindByEmailAsync(email);
+            if (emp != null) employees.Add(emp);
+        }
+
+        if (employees.Count == 0) return;
+
+        var activities = new[]
+        {
+            ("CreateClient", "Client", "Created individual client Иван Петров"),
+            ("CreateClient", "Client", "Created corporate client Алфа ООД"),
+            ("OpenAccount", "BankAccount", "Opened account BG11BANK00000000000001"),
+            ("OpenAccount", "BankAccount", "Opened account BG12BANK00000000000002"),
+            ("GrantCredit", "Credit", "Granted consumer credit 5000 EUR"),
+            ("GrantCredit", "Credit", "Granted mortgage credit 80000 EUR"),
+            ("PayInstallment", "RepaymentInstallment", "Paid installment #1 for credit"),
+            ("PayInstallment", "RepaymentInstallment", "Paid installment #2 for credit"),
+            ("CreateClient", "Client", "Created individual client Мария Георгиева"),
+            ("OpenAccount", "BankAccount", "Opened account BG13BANK00000000000003"),
+            ("GrantCredit", "Credit", "Granted consumer credit 8000 EUR"),
+            ("PayInstallment", "RepaymentInstallment", "Paid installment #1"),
+            ("DeactivateClient", "Client", "Deactivated client Георги Иванов"),
+            ("ActivateClient", "Client", "Activated client Георги Иванов"),
+            ("CloseAccount", "BankAccount", "Closed account BG14BANK00000000000004"),
+            ("CreateClient", "Client", "Created corporate client Бета ЕООД"),
+            ("GrantCredit", "Credit", "Granted mortgage credit 150000 EUR"),
+            ("PayInstallment", "RepaymentInstallment", "Paid installment #3"),
+            ("OpenAccount", "BankAccount", "Opened account BG15BANK00000000000005"),
+            ("WithdrawFunds", "BankAccount", "Withdrew 500 EUR from account")
+        };
+
+        for (int i = 0; i < activities.Length; i++)
+        {
+            var (action, entityType, details) = activities[i];
+            var employee = employees[i % employees.Count];
+            context.ActivityLogs.Add(new ActivityLog
+            {
+                UserId = employee.Id,
+                Action = action,
+                EntityType = entityType,
+                EntityId = Guid.NewGuid(),
+                Details = details,
+                Timestamp = DateTime.UtcNow.AddDays(-(activities.Length - i))
+            });
+        }
+
+        await context.SaveChangesAsync();
     }
 
     private sealed record ClientSeedDef(
