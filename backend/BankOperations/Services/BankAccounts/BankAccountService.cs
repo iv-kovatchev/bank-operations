@@ -5,6 +5,7 @@ using BankOperations.Exceptions;
 using BankOperations.Mappers.BankAccounts;
 using BankOperations.Repositories.BankAccounts;
 using BankOperations.Repositories.Clients;
+using BankOperations.Services.ActivityLogs;
 
 namespace BankOperations.Services.BankAccounts;
 
@@ -12,11 +13,16 @@ public class BankAccountService : IBankAccountService
 {
     private readonly IBankAccountRepository _bankAccountRepository;
     private readonly IClientRepository _clientRepository;
+    private readonly IActivityLogService _activityLogService;
 
-    public BankAccountService(IBankAccountRepository bankAccountRepository, IClientRepository clientRepository)
+    public BankAccountService(
+        IBankAccountRepository bankAccountRepository,
+        IClientRepository clientRepository,
+        IActivityLogService activityLogService)
     {
         _bankAccountRepository = bankAccountRepository;
         _clientRepository = clientRepository;
+        _activityLogService = activityLogService;
     }
 
     public async Task<IEnumerable<BankAccountResponseDto>> GetAllByClientIdAsync(Guid clientId)
@@ -52,6 +58,8 @@ public class BankAccountService : IBankAccountService
         await _bankAccountRepository.AddAsync(account);
         await _bankAccountRepository.SaveChangesAsync();
 
+        await _activityLogService.LogAsync(createdByUserId, "OpenAccount", "BankAccount", account.Id, $"Opened account {dto.IBAN}");
+
         return BankAccountMapper.ToDto(account);
     }
 
@@ -66,6 +74,8 @@ public class BankAccountService : IBankAccountService
         account.Status = AccountStatus.Closed;
         await _bankAccountRepository.UpdateAsync(account);
         await _bankAccountRepository.SaveChangesAsync();
+
+        await _activityLogService.LogAsync(requestingUserId, "CloseAccount", "BankAccount", id, $"Closed account {id}");
     }
 
     public async Task DeleteAccountAsync(Guid id)
@@ -91,6 +101,8 @@ public class BankAccountService : IBankAccountService
         await _bankAccountRepository.UpdateAsync(account);
         await _bankAccountRepository.SaveChangesAsync();
 
+        await _activityLogService.LogAsync(requestingUserId, "Deposit", "BankAccount", id, $"Deposited {amount} to account {id}");
+
         return BankAccountMapper.ToDto(account);
     }
 
@@ -111,6 +123,8 @@ public class BankAccountService : IBankAccountService
         account.Balance -= amount;
         await _bankAccountRepository.UpdateAsync(account);
         await _bankAccountRepository.SaveChangesAsync();
+
+        await _activityLogService.LogAsync(requestingUserId, "Withdraw", "BankAccount", id, $"Withdrew {amount} from account {id}");
 
         return BankAccountMapper.ToDto(account);
     }

@@ -4,6 +4,7 @@ using BankOperations.Entities.Clients;
 using BankOperations.Exceptions;
 using BankOperations.Mappers.Clients;
 using BankOperations.Repositories.Clients;
+using BankOperations.Services.ActivityLogs;
 using BankOperations.Services.Email;
 using BankOperations.Services.Password;
 using Microsoft.AspNetCore.Identity;
@@ -16,17 +17,20 @@ public class IndividualClientService : IIndividualClientService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IPasswordGenerator _passwordGenerator;
     private readonly IEmailService _emailService;
+    private readonly IActivityLogService _activityLogService;
 
     public IndividualClientService(
         IClientRepository clientRepository,
         UserManager<ApplicationUser> userManager,
         IPasswordGenerator passwordGenerator,
-        IEmailService emailService)
+        IEmailService emailService,
+        IActivityLogService activityLogService)
     {
         _clientRepository = clientRepository;
         _userManager = userManager;
         _passwordGenerator = passwordGenerator;
         _emailService = emailService;
+        _activityLogService = activityLogService;
     }
 
     public async Task<IndividualClientResponseDto> CreateAsync(CreateIndividualClientDto dto, Guid createdByUserId)
@@ -68,6 +72,8 @@ public class IndividualClientService : IIndividualClientService
 
         await _emailService.SendWelcomeEmailAsync(dto.Email, dto.FirstName, password);
 
+        await _activityLogService.LogAsync(createdByUserId, "CreateClient", "IndividualClient", client.ClientId, $"Created individual client {dto.EGN}");
+
         return ClientMapper.ToDto(client);
     }
 
@@ -90,6 +96,8 @@ public class IndividualClientService : IIndividualClientService
 
         await _clientRepository.UpdateAsync(ic);
         await _clientRepository.SaveChangesAsync();
+
+        await _activityLogService.LogAsync(requestingUserId, "UpdateClient", "IndividualClient", id, $"Updated individual client {id}");
 
         return ClientMapper.ToDto(ic);
     }
