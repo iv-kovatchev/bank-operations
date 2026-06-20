@@ -20,6 +20,7 @@ Available knowledge files (updated as features are completed):
 - @.claude/knowledge/bank-accounts/backend.md — BankAccountsController, soft delete, ownership check (GetByIdWithClientAsync), IBAN uniqueness, deposit/withdraw
 - @.claude/knowledge/bank-accounts/frontend.md — AccountsSection, TransactionForm, Zod preprocess + 3-generic useForm pattern
 - @.claude/knowledge/credits/backend.md — CreditsController, annuity repayment plan generation, plan regeneration on update, ValidateAndPrepareUpdateAsync<T>, CreditServiceEntity alias
+- @.claude/knowledge/employees/backend.md — Employee creation/list/activate/deactivate, no separate entity, reuses PasswordGenerator/EmailService (ActivityLogService deferred — not yet merged)
 
 ## Project Summary
 A closed, employee-only web application for managing bank clients, accounts, and credits.

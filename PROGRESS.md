@@ -233,11 +233,20 @@
   - Unit tests: `CreditsControllerTests` (10) + `CreditServiceTests` (21) + `CreditRepositoryTests` (12) — 43 new unit tests
   - Integration tests: `CreditsIntegrationTests` (11) — full HTTP pipeline with role/ownership checks
   - Total: 190 tests passing (136 previous + 54 new)
+- [x] `feature/employees` (backend) — Admin creates/activates/deactivates Employee accounts — `2026-06-20`
+  - `EmployeesController` — `POST /api/employees` (create), `GET /api/employees` (list), `GET /api/employees/{id}` (get one), `PATCH /api/employees/{id}/deactivate`, `PATCH /api/employees/{id}/activate`; class-level `[Authorize(Roles = "Admin")]` — every endpoint Admin-only
+  - `IEmployeeRepository` / `EmployeeRepository` — `GetByIdAsync` (plain `ApplicationUser` lookup), `GetAllAsync` (via `UserManager.GetUsersInRoleAsync("Employee")`), `ExistsByEmailAsync`; works against `ApplicationDbContext.Users` + `UserManager<ApplicationUser>`, no entity of its own
+  - `IEmployeeService` / `EmployeeService` — `CreateEmployeeAsync`, `GetAllEmployeesAsync`, `GetEmployeeByIdAsync`, `DeactivateEmployeeAsync`, `ActivateEmployeeAsync`; shared private `GetEmployeeUserAsync(id)` loads the user and checks `UserManager.IsInRoleAsync(user, "Employee")`, throwing `NotFoundException("Employee", id)` if missing or not an Employee
+  - DTOs: `CreateEmployeeDto`, `UpdateEmployeeDto`, `EmployeeResponseDto` in `DTOs/Employees/`
+  - `EmployeeMapper` static class in `Mappers/Employees/` — `ToDto(ApplicationUser)`
+  - Reuses `IPasswordGenerator` and `IEmailService` (`SendWelcomeEmailAsync`) from the Clients feature — no duplicate password/email logic
+  - Registered in `Config/ServiceExtensions.cs` and `Config/RepositoryExtensions.cs`
+  - **No separate entity/table** — Employee is an `ApplicationUser` with role `"Employee"` only; no TPT, no `Employees` table, no migration. `IsActive`/`CreatedAt` read directly from `AspNetUsers`, same as `ApplicationUser` already used elsewhere
+  - **No ownership isolation** — unlike Employee→Client (`CreatedByUserId` filtering), Admin manages all employees with no per-admin scoping; there is no employee-managing-employee concept
+  - Activity log calls intentionally omitted — `IActivityLogService` does not exist yet (`feature/activity-log` not merged); to be wired in once that branch lands
+- [ ] `feature/employees` (frontend) — Admin-only `/admin/employees` page listing all employees with status, create/deactivate/activate actions via `FormModal` + `ConfirmModal`
 - [ ] `feature/frontend-credits` — Credits (Consumer + Mortgage) frontend + Repayment Plan view
 - [ ] `feature/installments` — Mark installment as paid + credit status check
-- [ ] `feature/employees` (backend + frontend) — Admin creates/deactivates/activates Employee accounts; Admin-only page listing all employees with status
-  - Backend: `EmployeesController`, `IEmployeeService`, `EmployeeService`, DTOs (`CreateEmployeeDto`, `UpdateEmployeeDto`, `EmployeeResponseDto`)
-  - Frontend: `/admin/employees` page, table with search, create/deactivate/activate actions, `FormModal` + `ConfirmModal`
 - [ ] `feature/activity-log` (backend + frontend) — Auto-log all Employee/Admin operations; Admin view with filters
   - Backend: `IActivityLogService`, `ActivityLogService`, `IActivityLogRepository`, `ActivityLogRepository`, `ActivityLogsController`
   - Frontend: `/admin/activity-log` page, table with filters (by employee, date range, action type)
@@ -289,4 +298,5 @@
 - `2026-06-14` — Integration tests for `feature/account-transactions` (Deposit/Withdraw) must use unique EGN/email/IBAN per test, and the client must be created by the same employee performing the transaction — ownership checks are anchored to `Client.CreatedByUserId`, so a client created by a different user causes `UnauthorizedException` (401) instead of the expected result
 - `2026-06-20` — `feature/credits` (backend) — granting a credit and updating a credit both regenerate the full `RepaymentPlan`/`RepaymentInstallments` in the same DB transaction as the credit change, so a credit and its plan can never be persisted out of sync
 - `2026-06-20` — `feature/employees`, `feature/activity-log`, `feature/settings` assigned to teammate; will be developed in parallel on separate feature branches and merged into develop
+- `2026-06-20` — `feature/employees` (backend) completed ahead of the original parallel-track plan; reuses `AspNetUsers` + role `"Employee"` (no new entity/table/migration) and the existing `PasswordGenerator`/`EmailService` from the Clients feature; `IActivityLogService` calls deferred since `feature/activity-log` is not yet merged
 
