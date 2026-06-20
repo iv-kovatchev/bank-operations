@@ -391,6 +391,26 @@
 
 ---
 
+## 2026-06-21 — feature/settings
+
+### Profile editing restricted to Admin/Employee — Client excluded
+**Decision:** `GET /api/settings/profile` and `PUT /api/settings/profile` are `[Authorize(Roles = "Admin,Employee")]`, not open to `Client` as originally scoped in `PROGRESS.md`. `PATCH /api/settings/password` remains open to all three roles.
+**Why:** `IndividualClient`/`CorporateClient` store their own `FirstName`/`LastName` via TPT, separate from `ApplicationUser` — this is a deliberate pre-existing duplication (see the `Clients` entity design), not an oversight. If a Client edited their name via Settings, only the `ApplicationUser` row would change; the TPT `IndividualClient`/`CorporateClient` row (which is what `ClientsListPage`/`ClientDetailPage` actually read and display to Employees/Admins) would silently go stale. Syncing the two on every profile edit was considered and rejected — it treats the symptom (two name fields) rather than the cause (Client is documented in `PROJECT.md` as read-only self-service; it should not have a name-editing surface at all). Restricting profile editing to Admin/Employee, who have no such duplicate, sidesteps the desync entirely. Client keeps password change, which only ever touches `ApplicationUser` and has no duplicate-field risk.
+
+### No email-change flow
+**Decision:** `UpdateProfileDto` does not include `Email`. There is no way to change a user's login email through Settings.
+**Why:** An email change on an Identity-backed account should require re-verification (confirm the new address belongs to the user) before it takes effect, to avoid account-takeover via a typo'd or attacker-supplied address. That verification flow (token generation, confirmation email, confirmation endpoint) doesn't exist yet anywhere in the project. Adding email-change without it would be a security gap; building the full verified flow is out of scope for this feature. Deferred as a separate follow-up.
+
+### ActivityLog wired in for UpdateProfile/ChangePassword
+**Decision:** Unlike several other deferred call sites (`ClientService` activate/deactivate, `BankAccountService.DeleteAccountAsync`, `CreditServiceService`), `SettingsService.UpdateProfileAsync` and `ChangePasswordAsync` call `_activityLogService.LogAsync` directly.
+**Why:** Those other methods were deferred specifically because they don't yet accept a requesting-user identifier in their signature (see the `2026-06-20 — feature/activity-log` retrofit-scope decision above) — wiring them in would require a signature change across every caller. `SettingsService` has no such gap: every method already operates on the authenticated caller's own `ApplicationUser` (the userId comes from the JWT via the controller), so the actor's id is already on hand at zero extra cost. There was no reason to defer it.
+
+### No repository — SettingsService operates directly via UserManager
+**Decision:** `SettingsService` has no `ISettingsRepository`. `GetProfileAsync`, `UpdateProfileAsync`, and `ChangePasswordAsync` all call `UserManager<ApplicationUser>` directly.
+**Why:** Settings has no entity of its own — every operation reads or writes `ApplicationUser` fields (`FirstName`, `LastName`, password hash) through Identity's own APIs (`UpdateAsync`, `ChangePasswordAsync`). This matches the precedent already set by `EmployeeService` (no `Employee` entity, `UserManager` used directly) and `AuthService` (same, for login/OTP) — a repository wrapping `UserManager` would just be an extra indirection layer with no query logic of its own to justify it.
+
+---
+
 ## Template for new decisions
 
 ```markdown
