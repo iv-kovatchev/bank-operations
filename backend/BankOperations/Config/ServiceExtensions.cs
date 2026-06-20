@@ -10,6 +10,7 @@ using BankOperations.Services.Email;
 using BankOperations.Services.Employees;
 using BankOperations.Services.Otp;
 using BankOperations.Services.Password;
+using BankOperations.Services.Settings;
 using BankOperations.Services.Token;
 
 namespace BankOperations.Config;
@@ -31,6 +32,7 @@ public static class ServiceExtensions
         services.AddScoped<ICreditService, CreditService>();
         services.AddScoped<IEmployeeService, EmployeeService>();
         services.AddScoped<IActivityLogService, ActivityLogService>();
+        services.AddScoped<ISettingsService, SettingsService>();
         return services;
     }
 }
