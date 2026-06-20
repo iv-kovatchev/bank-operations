@@ -1,29 +1,30 @@
 import { useMemo, useState } from 'react';
 import { useGetActivityLogs } from '../../../api/activity-logs/useGetActivityLogs';
 
-const ALL = 'All';
+const ALL_USERS = 'All Users';
+const ALL_ACTIONS = 'All Actions';
 
 export const useActivityLogPage = () => {
   const { data: logs = [], isLoading } = useGetActivityLogs();
 
-  const [userFilter, setUserFilter] = useState(ALL);
-  const [actionFilter, setActionFilter] = useState(ALL);
+  const [userFilter, setUserFilter] = useState(ALL_USERS);
+  const [actionFilter, setActionFilter] = useState(ALL_ACTIONS);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
   const userOptions = useMemo(
-    () => [ALL, ...Array.from(new Set(logs.map(l => l.userName)))],
+    () => [ALL_USERS, ...Array.from(new Set(logs.map(l => l.userName)))],
     [logs]
   );
 
   const actionOptions = useMemo(
-    () => [ALL, ...Array.from(new Set(logs.map(l => l.action)))],
+    () => [ALL_ACTIONS, ...Array.from(new Set(logs.map(l => l.action)))],
     [logs]
   );
 
   const filteredLogs = logs.filter(log => {
-    if (userFilter !== ALL && log.userName !== userFilter) return false;
-    if (actionFilter !== ALL && log.action !== actionFilter) return false;
+    if (userFilter !== ALL_USERS && log.userName !== userFilter) return false;
+    if (actionFilter !== ALL_ACTIONS && log.action !== actionFilter) return false;
 
     const timestamp = new Date(log.timestamp);
     if (dateFrom && timestamp < new Date(dateFrom)) return false;

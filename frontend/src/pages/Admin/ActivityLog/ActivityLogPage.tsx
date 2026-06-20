@@ -47,18 +47,26 @@ const ActivityLogPage = () => {
             </Select.Content>
           </Select.Root>
 
-          <TextField.Root
-            className="activity-log-date-input"
-            type="date"
-            value={dateFrom}
-            onChange={e => setDateFrom(e.target.value)}
-          />
-          <TextField.Root
-            className="activity-log-date-input"
-            type="date"
-            value={dateTo}
-            onChange={e => setDateTo(e.target.value)}
-          />
+          <Flex gap="2" ml="4" className="activity-log-date-range">
+            <Flex align="center" gap="1">
+              <Text size="2" color="gray">From</Text>
+              <TextField.Root
+                className="activity-log-date-input"
+                type="date"
+                value={dateFrom}
+                onChange={e => setDateFrom(e.target.value)}
+              />
+            </Flex>
+            <Flex align="center" gap="1">
+              <Text size="2" color="gray">To</Text>
+              <TextField.Root
+                className="activity-log-date-input"
+                type="date"
+                value={dateTo}
+                onChange={e => setDateTo(e.target.value)}
+              />
+            </Flex>
+          </Flex>
         </Flex>
 
         <Box className="activity-log-table-wrapper">
