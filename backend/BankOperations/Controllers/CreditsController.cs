@@ -86,6 +86,7 @@ public class CreditsController : ControllerBase
     }
 
     [HttpGet("~/api/credits/{id}/repayment-plan")]
+    [Authorize(Roles = "Employee,Admin,Client")]
     public async Task<IActionResult> GetRepaymentPlan(Guid id)
     {
         var requestingUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);

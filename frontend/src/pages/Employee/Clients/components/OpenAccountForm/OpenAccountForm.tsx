@@ -59,7 +59,7 @@ const OpenAccountForm = ({ clientId, onClose }: OpenAccountFormProps) => {
         </Flex>
 
         <Flex direction="column" gap="1">
-          <Text as="label" size="2" weight="medium">Initial Balance (BGN)</Text>
+          <Text as="label" size="2" weight="medium">Initial Balance (EUR)</Text>
           <TextField.Root
             type="number"
             placeholder="0"

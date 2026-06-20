@@ -37,7 +37,9 @@ public class CreditService : ICreditService
     {
         var credits = await _creditRepository.GetAllByClientIdAsync(clientId);
 
-        if (!isAdmin)
+        bool isClient = clientId == requestingUserId;
+
+        if (!isAdmin && !isClient)
             credits = credits.Where(c => c.Client != null && c.Client.CreatedByUserId == requestingUserId);
 
         return credits.Select(CreditMapper.ToDto);
@@ -48,7 +50,9 @@ public class CreditService : ICreditService
         var credit = await _creditRepository.GetByIdWithDetailsAsync(id)
             ?? throw new NotFoundException("Credit", id);
 
-        if (!isAdmin && credit.Client.CreatedByUserId != requestingUserId)
+        bool isClient = credit.ClientId == requestingUserId;
+
+        if (!isAdmin && !isClient && credit.Client.CreatedByUserId != requestingUserId)
             throw new UnauthorizedException("You do not have access to this credit.");
 
         return CreditMapper.ToDto(credit);
@@ -179,7 +183,9 @@ public class CreditService : ICreditService
         var credit = await _creditRepository.GetByIdWithDetailsAsync(creditId)
             ?? throw new NotFoundException("Credit", creditId);
 
-        if (!isAdmin && credit.Client.CreatedByUserId != requestingUserId)
+        bool isClient = credit.ClientId == requestingUserId;
+
+        if (!isAdmin && !isClient && credit.Client.CreatedByUserId != requestingUserId)
             throw new UnauthorizedException("You do not have access to this credit.");
 
         if (credit.RepaymentPlan == null)

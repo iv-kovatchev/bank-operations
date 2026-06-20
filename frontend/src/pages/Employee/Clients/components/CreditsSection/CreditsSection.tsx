@@ -33,7 +33,7 @@ const CreditsSection = ({ clientId, role }: CreditsSectionProps) => {
     handleCloseModal,
     handleViewRepaymentPlan,
     handleCloseRepaymentPlan,
-  } = useCreditsSection(clientId);
+  } = useCreditsSection(clientId, role);
 
   return (
     <>
@@ -82,7 +82,7 @@ const CreditsSection = ({ clientId, role }: CreditsSectionProps) => {
                       {credit.creditType}
                     </Badge>
                   </Table.Cell>
-                  <Table.Cell>{credit.amount.toFixed(2)} BGN</Table.Cell>
+                  <Table.Cell>{credit.amount.toFixed(2)} EUR</Table.Cell>
                   <Table.Cell>{credit.termMonths} months</Table.Cell>
                   <Table.Cell>
                     <Badge color={STATUS_COLORS[credit.status] ?? 'gray'}>

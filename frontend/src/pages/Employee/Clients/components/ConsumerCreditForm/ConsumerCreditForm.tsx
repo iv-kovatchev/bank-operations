@@ -53,7 +53,7 @@ const ConsumerCreditForm = ({ mode, initialData, clientId, onClose }: ConsumerCr
         </Flex>
 
         <Flex direction="column" gap="1">
-          <Text as="label" size="2" weight="medium">Amount (BGN)</Text>
+          <Text as="label" size="2" weight="medium">Amount (EUR)</Text>
           <TextField.Root type="number" step="0.01" placeholder="5000" {...register('amount')} />
           {errors.amount && <Text size="1" color="red">{errors.amount.message}</Text>}
         </Flex>

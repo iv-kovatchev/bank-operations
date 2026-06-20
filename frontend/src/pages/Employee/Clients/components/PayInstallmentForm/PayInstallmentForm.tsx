@@ -31,7 +31,7 @@ const PayInstallmentForm = ({ creditId, installmentId, clientId, onClose }: PayI
                 <Select.Content>
                   {activeAccounts.map((account) => (
                     <Select.Item key={account.id} value={account.id}>
-                      {account.iban} — {account.balance.toFixed(2)} BGN
+                      {account.iban} — {account.balance.toFixed(2)} EUR
                     </Select.Item>
                   ))}
                 </Select.Content>

@@ -35,7 +35,7 @@ const RepaymentPlanSection = ({ creditId, clientId, role }: RepaymentPlanSection
       <Flex direction="column" gap="1" mb="4">
         <Flex justify="between">
           <Text size="2" color="gray">Monthly Installment</Text>
-          <Text size="3">{plan.monthlyInstallment.toFixed(2)} BGN</Text>
+          <Text size="3">{plan.monthlyInstallment.toFixed(2)} EUR</Text>
         </Flex>
         <Flex justify="between">
           <Text size="2" color="gray">Generated At</Text>
@@ -43,7 +43,7 @@ const RepaymentPlanSection = ({ creditId, clientId, role }: RepaymentPlanSection
         </Flex>
         <Flex justify="between">
           <Text size="2" color="gray">Remaining Amount</Text>
-          <Text size="3">{remainingAmount.toFixed(2)} BGN</Text>
+          <Text size="3">{remainingAmount.toFixed(2)} EUR</Text>
         </Flex>
       </Flex>
 
@@ -53,10 +53,10 @@ const RepaymentPlanSection = ({ creditId, clientId, role }: RepaymentPlanSection
             <Table.Row>
               <Table.ColumnHeaderCell>#</Table.ColumnHeaderCell>
               <Table.ColumnHeaderCell>Due Date</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Principal (BGN)</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Interest (BGN)</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Total (BGN)</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Remaining Balance (BGN)</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>Principal (EUR)</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>Interest (EUR)</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>Total (EUR)</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>Remaining Balance (EUR)</Table.ColumnHeaderCell>
               <Table.ColumnHeaderCell>Status</Table.ColumnHeaderCell>
               <Table.ColumnHeaderCell>Actions</Table.ColumnHeaderCell>
             </Table.Row>

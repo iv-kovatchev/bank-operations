@@ -12,9 +12,9 @@ interface RepaymentPlanModalState {
 
 const INITIAL_REPAYMENT_PLAN_MODAL: RepaymentPlanModalState = { open: false, creditId: null };
 
-export const useCreditsSection = (clientId: string) => {
+export const useCreditsSection = (clientId: string, role: string) => {
   const { data: credits, isLoading } = useGetClientCredits(clientId);
-  const { data: creditServices } = useGetCreditServices();
+  const { data: creditServices } = useGetCreditServices({ enabled: role !== 'Client' });
 
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [selectedCredit, setSelectedCredit] = useState<CreditResponse | null>(null);
