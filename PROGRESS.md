@@ -289,11 +289,17 @@
   - Date inputs styled icon-only via webkit pseudo-elements (`::-webkit-datetime-edit*` hidden, `::-webkit-calendar-picker-indicator` kept) with "From"/"To" text labels in front
   - Route `/admin/activity-log` added under `AdminRoutes`; Sidebar "Activity Log" item added to `ADMIN_ITEMS` (`ClockIcon`)
   - No automated tests written — per the no-more-tests decision
-- [ ] `feature/frontend-credits` — Credits (Consumer + Mortgage) frontend + Repayment Plan view
-- [ ] `feature/installments` — Mark installment as paid + credit status check
-- [ ] `feature/settings` (backend + frontend) — Change password + update profile info
-  - Backend: `SettingsController`, `ISettingsService`, `SettingsService`; uses `UserManager` for password change and profile update
-  - Frontend: `/settings` page accessible to all roles (Admin, Employee, Client)
+- [x] `feature/settings` (backend + frontend) — Change password + update profile info — `2026-06-21`
+  - DTOs in `DTOs/Settings/`: `ChangePasswordDto`, `UpdateProfileDto`, `ProfileResponseDto`
+  - `ISettingsService` / `SettingsService` — operates directly via `UserManager<ApplicationUser>`, no repository: `GetProfileAsync`, `UpdateProfileAsync`, `ChangePasswordAsync`
+  - `LogAsync` wired into `UpdateProfileAsync` and `ChangePasswordAsync` (`Action`: `UpdateProfile`, `ChangePassword`)
+  - `SettingsController` — `GET /api/settings/profile`, `PUT /api/settings/profile` restricted to `[Authorize(Roles = "Admin,Employee")]`; `PATCH /api/settings/password` open to all authenticated roles (`Admin,Employee,Client`)
+  - **GET/PUT profile is Admin/Employee only — Client excluded.** `IndividualClient`/`CorporateClient` store their own `FirstName`/`LastName` via TPT, separate from `ApplicationUser`. Client is documented as read-only self-service (`PROJECT.md`) — allowing Client self-edit via Settings would silently desync the duplicated name fields from the Employee/Admin-facing Clients list. Client keeps password change only.
+  - Frontend: `src/types/settings.types.ts`; hooks `useGetProfile`/`useUpdateProfile`/`useChangePassword` in `src/api/settings/`
+  - `SettingsPage` + `useSettingsPage` — Profile card (Admin/Employee only) + Change Password card (all roles)
+  - `AuthenticatedRoutes.tsx` — `/settings` route has no role check, only `isAuthenticated`
+  - Header "Settings" dropdown item wired to navigate to `/settings`
+  - No automated tests written — per the no-more-tests decision
 
 ### Phase 4 — Dashboards
 
