@@ -323,6 +323,30 @@
 
 ---
 
+## 2026-06-20 — feature/employees backend
+
+### Employee has no separate entity or table
+**Decision:** Employee accounts are plain `ApplicationUser` rows with role `"Employee"` — no `Employee` entity, no TPT, no `Employees` table, no migration.
+**Why:** Same reasoning as the original Client model before the `Clients` table existed: an Employee has no fields beyond what `AspNetUsers` already provides (`FirstName`, `LastName`, `Email`, `IsActive`, `CreatedAt`). Adding a table with zero extra columns would only add a join for no benefit. `IClientRepository`/`IClientService` proved this pattern works for accounts that are "just a user with a role" — `IEmployeeRepository` queries `ApplicationDbContext.Users` directly and filters by role via `UserManager.GetUsersInRoleAsync("Employee")` instead of a dedicated query.
+
+### No ownership isolation for employees
+**Decision:** `EmployeeService` has no `requestingUserId`/`isAdmin` ownership check anywhere — every method is reachable only by Admin (`[Authorize(Roles = "Admin")]` at the controller class level), and any Admin can view/deactivate/activate any employee.
+**Why:** The Employee→Client ownership model (`Client.CreatedByUserId` filtering) exists because multiple Employees manage disjoint client portfolios. There is no equivalent concept for Employees themselves — Employees do not manage other Employees, and there is exactly one tier (Admin) above them. Adding an ownership check here would model a relationship that doesn't exist in the domain.
+
+### Reuse PasswordGenerator and EmailService; ActivityLogService deferred
+**Decision:** `EmployeeService` injects the existing `IPasswordGenerator` and `IEmailService` (`SendWelcomeEmailAsync`) from the Clients feature rather than writing employee-specific equivalents. `IActivityLogService.LogAsync` calls are intentionally **not** included in `CreateEmployeeAsync`/`DeactivateEmployeeAsync`/`ActivateEmployeeAsync`.
+**Why:** Password generation and the welcome-email flow are identical regardless of role (Client vs Employee) — both create an `ApplicationUser` with a generated password and send the same email shape. Duplicating either would create two sources of truth for password rules and email templates. `IActivityLogService` is excluded because it does not exist in this branch yet — `feature/activity-log` (teammate's parallel branch) has not been merged into `develop`. The call sites are deliberately left out rather than stubbed against a temporary interface, to avoid a throwaway type that would need to be deleted and reconciled at merge time; logging will be added once the real `IActivityLogService` lands.
+
+---
+
+## 2026-06-20 — feature/employees frontend
+
+### Create-only EmployeeForm — no edit mode
+**Decision:** `EmployeeForm` only supports creation. There is no `UpdateEmployeeAsync` call, no edit `FormModal` instance, and no employee detail page — unlike `IndividualClientForm`/`CorporateClientForm`, which support both create and edit from day one.
+**Why:** The backend has no `UpdateEmployeeAsync`/`PUT` endpoint for employees yet — it's listed only as a future extension in the employees backend knowledge doc, not implemented. Building an edit form against a non-existent endpoint would mean either a throwaway form or a half-wired one; matching frontend scope to actual backend capability keeps both in sync. Edit support can be added later by following the same pattern already proven on Clients.
+
+---
+
 ## Template for new decisions
 
 ```markdown
