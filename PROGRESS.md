@@ -252,11 +252,24 @@
   - Route `/admin/employees` added under `AdminRoutes`; Sidebar "Employees" item added to `ADMIN_ITEMS`
   - No automated tests written — per the no-more-tests decision logged under the backend entry above
   - `feature/employees` now fully complete (backend + frontend) for its planned scope: list, create, activate, deactivate. Update flow and an employee detail page were never part of the planned scope and remain open if needed later.
+- [x] `feature/activity-log` (backend + frontend) — Audit log of Employee/Admin operations; Admin-only view with filters — `2026-06-20`
+  - ActivityLog entity/table already existed from the initial migration but was previously unused — this feature wires it up end-to-end
+  - `IActivityLogRepository` / `ActivityLogRepository` (`Repositories/ActivityLogs/`) — `GetAllAsync` eager-loads `User`, ordered by `Timestamp` descending; standard `AddAsync`/`SaveChangesAsync`, no base class
+  - `IActivityLogService` / `ActivityLogService` (`Services/ActivityLogs/`) — `LogAsync` wraps the repository call in try/catch and logs any failure via `ILogger<ActivityLogService>`, **never rethrows**; `GetAllLogsAsync` maps results via `ActivityLogMapper`
+  - `ActivityLogsController` — `GET /api/activity-logs`, `[Authorize(Roles = "Admin")]` at class level
+  - `ActivityLogResponseDto` (`DTOs/ActivityLogs/`) — `Id, UserId, UserName, Action, EntityType, EntityId, Timestamp, Details`; `ActivityLogMapper` builds `UserName` as `$"{log.User.FirstName} {log.User.LastName}"`
+  - Registered in `Config/RepositoryExtensions.cs` and `Config/ServiceExtensions.cs`
+  - `LogAsync` calls wired into: `EmployeeService` (Create/Activate/Deactivate), `IndividualClientService` (Create/Update), `CorporateClientService` (Create/Update), `BankAccountService` (Open/Close/Deposit/Withdraw), `CreditService` (GrantConsumer/GrantMortgage/UpdateConsumer/UpdateMortgage) — each call placed right before the final `return`, after the entity is already saved
+  - **Not yet wired:** `ClientService.DeactivateAsync`/`ActivateAsync`, `BankAccountService.DeleteAccountAsync`, `CreditServiceService` (Create/Update/Delete) — none of these currently accept a `requestingUserId`/`createdByUserId` parameter; logging them needs a signature change first, deferred as a follow-up task
+  - `DataSeeder` — added 12+ dummy `ActivityLog` rows for manual filter testing; every `Details` value prefixed `"[DUMMY] "`; idempotent (`AnyAsync` check on the prefix skips seeding if dummy rows already exist); varied `Action`/`EntityType`/`Timestamp` (today, days ago, weeks ago) across the seeded admin/employee users
+  - Frontend: `activity-log.types.ts` — `ActivityLogResponse`
+  - `useGetActivityLogs.ts` — single read-only React Query hook (`queryKey: ['activity-logs']`), no mutations
+  - `ActivityLogPage.tsx` + `useActivityLogPage.ts` — table (Timestamp, User, Action, Entity Type, Entity Id, Details), client-side filters (User/Action `Select` with "All Users"/"All Actions" sentinel options, From/To date range), empty state ("No activity logs")
+  - Date inputs styled icon-only via webkit pseudo-elements (`::-webkit-datetime-edit*` hidden, `::-webkit-calendar-picker-indicator` kept) with "From"/"To" text labels in front
+  - Route `/admin/activity-log` added under `AdminRoutes`; Sidebar "Activity Log" item added to `ADMIN_ITEMS` (`ClockIcon`)
+  - No automated tests written — per the no-more-tests decision
 - [ ] `feature/frontend-credits` — Credits (Consumer + Mortgage) frontend + Repayment Plan view
 - [ ] `feature/installments` — Mark installment as paid + credit status check
-- [ ] `feature/activity-log` (backend + frontend) — Auto-log all Employee/Admin operations; Admin view with filters
-  - Backend: `IActivityLogService`, `ActivityLogService`, `IActivityLogRepository`, `ActivityLogRepository`, `ActivityLogsController`
-  - Frontend: `/admin/activity-log` page, table with filters (by employee, date range, action type)
 - [ ] `feature/settings` (backend + frontend) — Change password + update profile info
   - Backend: `SettingsController`, `ISettingsService`, `SettingsService`; uses `UserManager` for password change and profile update
   - Frontend: `/settings` page accessible to all roles (Admin, Employee, Client)
@@ -306,4 +319,5 @@
 - `2026-06-20` — `feature/credits` (backend) — granting a credit and updating a credit both regenerate the full `RepaymentPlan`/`RepaymentInstallments` in the same DB transaction as the credit change, so a credit and its plan can never be persisted out of sync
 - `2026-06-20` — `feature/employees`, `feature/activity-log`, `feature/settings` assigned to teammate; will be developed in parallel on separate feature branches and merged into develop
 - `2026-06-20` — `feature/employees` (backend) completed ahead of the original parallel-track plan; reuses `AspNetUsers` + role `"Employee"` (no new entity/table/migration) and the existing `PasswordGenerator`/`EmailService` from the Clients feature; `IActivityLogService` calls deferred since `feature/activity-log` is not yet merged
+- `2026-06-20` — `feature/activity-log` (backend + frontend) completed: `ActivityLog` entity/table reused from the initial migration; `LogAsync` swallows its own exceptions (never breaks the calling business operation) and is now wired into `EmployeeService`, `IndividualClientService`, `CorporateClientService`, `BankAccountService`, and `CreditService`; `ClientService` activate/deactivate, `BankAccountService.DeleteAccountAsync`, and `CreditServiceService` are deferred since they don't yet accept a requesting-user parameter; `DataSeeder` seeds idempotent `[DUMMY]`-prefixed rows for manual filter testing
 
