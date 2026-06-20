@@ -3,6 +3,7 @@ using BankOperations.Entities;
 using BankOperations.Exceptions;
 using BankOperations.Mappers.Employees;
 using BankOperations.Repositories.Employees;
+using BankOperations.Services.ActivityLogs;
 using BankOperations.Services.Email;
 using BankOperations.Services.Password;
 using Microsoft.AspNetCore.Identity;
@@ -15,17 +16,20 @@ public class EmployeeService : IEmployeeService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IPasswordGenerator _passwordGenerator;
     private readonly IEmailService _emailService;
+    private readonly IActivityLogService _activityLogService;
 
     public EmployeeService(
         IEmployeeRepository employeeRepository,
         UserManager<ApplicationUser> userManager,
         IPasswordGenerator passwordGenerator,
-        IEmailService emailService)
+        IEmailService emailService,
+        IActivityLogService activityLogService)
     {
         _employeeRepository = employeeRepository;
         _userManager = userManager;
         _passwordGenerator = passwordGenerator;
         _emailService = emailService;
+        _activityLogService = activityLogService;
     }
 
     public async Task<EmployeeResponseDto> CreateEmployeeAsync(CreateEmployeeDto dto, Guid createdByUserId)
@@ -51,6 +55,8 @@ public class EmployeeService : IEmployeeService
 
         await _emailService.SendWelcomeEmailAsync(dto.Email, dto.FirstName, password);
 
+        await _activityLogService.LogAsync(createdByUserId, "CreateEmployee", "Employee", user.Id, $"Created employee {dto.Email}");
+
         return EmployeeMapper.ToDto(user);
     }
 
@@ -72,6 +78,8 @@ public class EmployeeService : IEmployeeService
 
         user.IsActive = false;
         await _userManager.UpdateAsync(user);
+
+        await _activityLogService.LogAsync(requestingAdminId, "DeactivateEmployee", "Employee", id, $"Deactivated employee {id}");
     }
 
     public async Task ActivateEmployeeAsync(Guid id, Guid requestingAdminId)
@@ -80,6 +88,8 @@ public class EmployeeService : IEmployeeService
 
         user.IsActive = true;
         await _userManager.UpdateAsync(user);
+
+        await _activityLogService.LogAsync(requestingAdminId, "ActivateEmployee", "Employee", id, $"Activated employee {id}");
     }
 
     private async Task<ApplicationUser> GetEmployeeUserAsync(Guid id)

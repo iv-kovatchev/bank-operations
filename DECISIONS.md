@@ -367,6 +367,30 @@
 
 ---
 
+## 2026-06-20 — feature/activity-log
+
+### Explicit service-layer LogAsync calls, not a controller filter or EF interceptor
+**Decision:** Activity logging is implemented as explicit `await _activityLogService.LogAsync(...)` calls placed inline at the end of each business operation in the relevant service (`EmployeeService`, `IndividualClientService`, `CorporateClientService`, `BankAccountService`, `CreditService`), rather than a cross-cutting `IActionFilter`/middleware or an EF Core `SaveChanges` interceptor.
+**Why:** This matches the pattern already documented in `CONVENTIONS.md`/`DECISIONS.md` (`ActivityLogs` section, "Why ActivityLogs table"). A filter or interceptor would log generically (e.g. "entity X changed") without the ability to express the specific `Action` string and a human-readable `Details` message per operation (e.g. `"Granted consumer credit of {dto.Amount}"`). Explicit calls keep full control over what gets logged and read naturally at the call site, at the cost of needing to remember to add the call when a new operation is written.
+
+### LogAsync swallows its own exceptions — never propagates
+**Decision:** `ActivityLogService.LogAsync` wraps its repository call in try/catch, logs any failure via `ILogger<ActivityLogService>`, and never rethrows.
+**Why:** Activity logging is an audit side-effect, not part of the core transaction. If writing the audit row failed and that exception propagated, a `GlobalExceptionMiddleware`-caught 500 would roll back or fail an otherwise-successful deposit, credit grant, or client creation — turning a logging bug into a banking-operation outage. Swallowing the exception (with a logged error for visibility) means the worst case of an audit-log failure is a missing log row, never a broken business operation.
+
+### Activity log filtering is client-side, loaded once
+**Decision:** `GET /api/activity-logs` returns the full list; `useActivityLogPage` filters by user, action, and date range entirely in the browser against the already-loaded array. There is no server-side filter/search endpoint.
+**Why:** Matches the existing project-wide convention already used by every other list page (`useClientsListPage`, `useEmployeesListPage`) — search/filter is derived state on a single loaded array, no extra API calls per filter change. Consistent with the project's current scale; would need pagination + server-side filtering if the log volume grows large enough that loading the full table becomes a problem.
+
+### Retrofit scope limited to methods that already accept a requesting-user parameter
+**Decision:** `LogAsync` was wired into `EmployeeService`, `IndividualClientService`, `CorporateClientService`, `BankAccountService` (Open/Close/Deposit/Withdraw), and `CreditService` (Grant/Update for both credit types) — all methods that already had a `requestingUserId`/`createdByUserId` parameter. `ClientService.DeactivateAsync`/`ActivateAsync`, `BankAccountService.DeleteAccountAsync`, and `CreditServiceService` (Create/Update/Delete) were **not** touched.
+**Why:** None of the excluded methods currently accept a requesting-user identifier in their signature — adding a `LogAsync` call there would require a signature change (and updating every caller/controller) first. Bundling a logging feature with an unrelated signature-change refactor across three other services risks scope creep and unrelated breakage. Deferred as a separate, explicit follow-up task instead.
+
+### Dummy seed data clearly marked and idempotent
+**Decision:** `DataSeeder` inserts 12+ `ActivityLog` rows for manual testing, with every `Details` value prefixed `"[DUMMY] "`. Before inserting, it checks `_context.ActivityLogs.AnyAsync(al => al.Details != null && al.Details.StartsWith("[DUMMY]"))` and skips seeding entirely if any such row already exists.
+**Why:** Manual testing of the User/Action/date-range filters needs real spread-out data, but seed data must never silently duplicate on every app restart (same idempotency principle as the rest of `DataSeeder` — see `2026-05-28` entry). The `"[DUMMY]"` prefix makes these rows unmistakably test data, so they can be found and deleted via a simple `LIKE '[DUMMY]%'` query (or a future cleanup script) without risking a real audit row.
+
+---
+
 ## Template for new decisions
 
 ```markdown

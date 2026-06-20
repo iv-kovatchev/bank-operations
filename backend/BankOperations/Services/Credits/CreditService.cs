@@ -10,6 +10,7 @@ using BankOperations.Repositories.BankAccounts;
 using BankOperations.Repositories.Clients;
 using BankOperations.Repositories.Credits;
 using BankOperations.Repositories.CreditServices;
+using BankOperations.Services.ActivityLogs;
 using CreditServiceEntity = BankOperations.Entities.CreditService;
 
 namespace BankOperations.Services.Credits;
@@ -20,17 +21,20 @@ public class CreditService : ICreditService
     private readonly ICreditServiceRepository _creditServiceRepository;
     private readonly IClientRepository _clientRepository;
     private readonly IBankAccountRepository _bankAccountRepository;
+    private readonly IActivityLogService _activityLogService;
 
     public CreditService(
         ICreditRepository creditRepository,
         ICreditServiceRepository creditServiceRepository,
         IClientRepository clientRepository,
-        IBankAccountRepository bankAccountRepository)
+        IBankAccountRepository bankAccountRepository,
+        IActivityLogService activityLogService)
     {
         _creditRepository = creditRepository;
         _creditServiceRepository = creditServiceRepository;
         _clientRepository = clientRepository;
         _bankAccountRepository = bankAccountRepository;
+        _activityLogService = activityLogService;
     }
 
     public async Task<IEnumerable<CreditResponseDto>> GetAllByClientIdAsync(Guid clientId, Guid requestingUserId, bool isAdmin)
@@ -89,6 +93,8 @@ public class CreditService : ICreditService
         await _creditRepository.AddRepaymentPlanAsync(plan);
         await _creditRepository.SaveChangesAsync();
 
+        await _activityLogService.LogAsync(createdByUserId, "GrantConsumerCredit", "Credit", credit.Id, $"Granted consumer credit of {dto.Amount}");
+
         return CreditMapper.ToDto(credit);
     }
 
@@ -124,6 +130,8 @@ public class CreditService : ICreditService
         await _creditRepository.AddRepaymentPlanAsync(plan);
         await _creditRepository.SaveChangesAsync();
 
+        await _activityLogService.LogAsync(createdByUserId, "GrantMortgageCredit", "Credit", credit.Id, $"Granted mortgage credit of {dto.Amount}");
+
         return CreditMapper.ToDto(credit);
     }
 
@@ -148,6 +156,8 @@ public class CreditService : ICreditService
 
         await DeleteAndRegenerateRepaymentPlan(cc, creditService);
         await _creditRepository.SaveChangesAsync();
+
+        await _activityLogService.LogAsync(requestingUserId, "UpdateConsumerCredit", "Credit", id, $"Updated consumer credit {id}");
 
         return CreditMapper.ToDto(cc);
     }
@@ -174,6 +184,8 @@ public class CreditService : ICreditService
 
         await DeleteAndRegenerateRepaymentPlan(mc, creditService);
         await _creditRepository.SaveChangesAsync();
+
+        await _activityLogService.LogAsync(requestingUserId, "UpdateMortgageCredit", "Credit", id, $"Updated mortgage credit {id}");
 
         return CreditMapper.ToDto(mc);
     }

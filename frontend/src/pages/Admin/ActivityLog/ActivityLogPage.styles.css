@@ -1,0 +1,50 @@
+.activity-log-table-wrapper {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.activity-log-filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.activity-log-date-input {
+  width: auto;
+  min-width: 32px;
+}
+
+.activity-log-date-input input[type="date"]::-webkit-datetime-edit,
+.activity-log-date-input input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+.activity-log-date-input input[type="date"]::-webkit-datetime-edit-text,
+.activity-log-date-input input[type="date"]::-webkit-datetime-edit-month-field,
+.activity-log-date-input input[type="date"]::-webkit-datetime-edit-day-field,
+.activity-log-date-input input[type="date"]::-webkit-datetime-edit-year-field {
+  display: none;
+}
+
+.activity-log-date-input input[type="date"]::-webkit-calendar-picker-indicator {
+  margin: 0;
+  cursor: pointer;
+}
+
+.activity-log-date-range {
+  border-left: 1px solid var(--gray-a5);
+  padding-left: 16px;
+}
+
+@media (max-width: 768px) {
+  .activity-log-filters {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .activity-log-date-range {
+    border-left: none;
+    padding-left: 0;
+    margin-left: 0 !important;
+    width: 100%;
+  }
+}

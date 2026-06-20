@@ -22,6 +22,8 @@ Available knowledge files (updated as features are completed):
 - @.claude/knowledge/credits/backend.md — CreditsController, annuity repayment plan generation, plan regeneration on update, ValidateAndPrepareUpdateAsync<T>, CreditServiceEntity alias
 - @.claude/knowledge/employees/backend.md — Employee creation/list/activate/deactivate, no separate entity, reuses PasswordGenerator/EmailService (ActivityLogService deferred — not yet merged)
 - @.claude/knowledge/installments/backend.md — Pay/Unpay installment, bank account withdrawal, automatic Credit.Status PaidOff/Active, IBankAccountRepository injected in CreditService
+- @.claude/knowledge/activity-log/backend.md — ActivityLog LogAsync (swallows exceptions), wired into Employees/Clients/BankAccounts/Credits, deferred methods needing signature change
+- @.claude/knowledge/activity-log/frontend.md — ActivityLogPage client-side filters, icon-only date input CSS
 
 ## Project Summary
 A closed, employee-only web application for managing bank clients, accounts, and credits.
