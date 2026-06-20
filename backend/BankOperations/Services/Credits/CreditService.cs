@@ -1,4 +1,3 @@
-using BankOperations.Data;
 using BankOperations.DTOs.Credits;
 using BankOperations.DTOs.Credits.ConsumerCredits;
 using BankOperations.DTOs.Credits.MortgageCredits;
@@ -10,7 +9,6 @@ using BankOperations.Mappers.Credits;
 using BankOperations.Repositories.Clients;
 using BankOperations.Repositories.Credits;
 using BankOperations.Repositories.CreditServices;
-using Microsoft.EntityFrameworkCore;
 using CreditServiceEntity = BankOperations.Entities.CreditService;
 
 namespace BankOperations.Services.Credits;
@@ -20,18 +18,15 @@ public class CreditService : ICreditService
     private readonly ICreditRepository _creditRepository;
     private readonly ICreditServiceRepository _creditServiceRepository;
     private readonly IClientRepository _clientRepository;
-    private readonly ApplicationDbContext _context;
 
     public CreditService(
         ICreditRepository creditRepository,
         ICreditServiceRepository creditServiceRepository,
-        IClientRepository clientRepository,
-        ApplicationDbContext context)
+        IClientRepository clientRepository)
     {
         _creditRepository = creditRepository;
         _creditServiceRepository = creditServiceRepository;
         _clientRepository = clientRepository;
-        _context = context;
     }
 
     public async Task<IEnumerable<CreditResponseDto>> GetAllByClientIdAsync(Guid clientId, Guid requestingUserId, bool isAdmin)
@@ -83,7 +78,7 @@ public class CreditService : ICreditService
         await _creditRepository.SaveChangesAsync();
 
         var plan = GenerateRepaymentPlan(credit, creditService);
-        await _context.RepaymentPlans.AddAsync(plan);
+        await _creditRepository.AddRepaymentPlanAsync(plan);
         await _creditRepository.SaveChangesAsync();
 
         return CreditMapper.ToDto(credit);
@@ -118,7 +113,7 @@ public class CreditService : ICreditService
         await _creditRepository.SaveChangesAsync();
 
         var plan = GenerateRepaymentPlan(credit, creditService);
-        await _context.RepaymentPlans.AddAsync(plan);
+        await _creditRepository.AddRepaymentPlanAsync(plan);
         await _creditRepository.SaveChangesAsync();
 
         return CreditMapper.ToDto(credit);
@@ -218,17 +213,10 @@ public class CreditService : ICreditService
 
     private async Task DeleteAndRegenerateRepaymentPlan(Credit credit, CreditServiceEntity creditService)
     {
-        var existingPlan = await _context.RepaymentPlans
-            .Include(rp => rp.Installments)
-            .FirstOrDefaultAsync(rp => rp.CreditId == credit.Id);
-        if (existingPlan != null)
-        {
-            _context.RepaymentInstallments.RemoveRange(existingPlan.Installments);
-            _context.RepaymentPlans.Remove(existingPlan);
-        }
+        await _creditRepository.DeleteRepaymentPlanByCreditIdAsync(credit.Id);
 
         var plan = GenerateRepaymentPlan(credit, creditService);
-        await _context.RepaymentPlans.AddAsync(plan);
+        await _creditRepository.AddRepaymentPlanAsync(plan);
     }
 
     private static RepaymentPlan GenerateRepaymentPlan(Credit credit, CreditServiceEntity creditService)

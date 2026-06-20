@@ -6,6 +6,7 @@ import Badge from '../../../../../components/Badge/Badge';
 import LoadingSpinner from '../../../../../components/LoadingSpinner/LoadingSpinner';
 import ConsumerCreditForm from '../ConsumerCreditForm/ConsumerCreditForm';
 import MortgageCreditForm from '../MortgageCreditForm/MortgageCreditForm';
+import RepaymentPlanSection from '../RepaymentPlanSection/RepaymentPlanSection';
 import { useCreditsSection } from './useCreditsSection';
 
 interface CreditsSectionProps {
@@ -149,7 +150,7 @@ const CreditsSection = ({ clientId, role }: CreditsSectionProps) => {
         onClose={handleCloseRepaymentPlan}
       >
         {repaymentPlanModal.creditId && (
-          <Text color="gray">Repayment plan view coming soon.</Text>
+          <RepaymentPlanSection creditId={repaymentPlanModal.creditId} />
         )}
       </FormModal>
     </>

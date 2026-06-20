@@ -1,4 +1,3 @@
-using BankOperations.Data;
 using BankOperations.DTOs.Credits.ConsumerCredits;
 using BankOperations.DTOs.Credits.MortgageCredits;
 using BankOperations.Entities;
@@ -9,7 +8,6 @@ using BankOperations.Exceptions;
 using BankOperations.Repositories.Clients;
 using BankOperations.Repositories.Credits;
 using BankOperations.Repositories.CreditServices;
-using Microsoft.EntityFrameworkCore;
 using Moq;
 using Shouldly;
 using CreditServiceEntity = BankOperations.Entities.CreditService;
@@ -21,13 +19,9 @@ public class CreditServiceTests
     private readonly Mock<ICreditRepository> _creditRepoMock = new();
     private readonly Mock<ICreditServiceRepository> _creditServiceRepoMock = new();
     private readonly Mock<IClientRepository> _clientRepoMock = new();
-    private readonly ApplicationDbContext _context = new(
-        new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options);
 
     private BankOperations.Services.Credits.CreditService CreateService() =>
-        new(_creditRepoMock.Object, _creditServiceRepoMock.Object, _clientRepoMock.Object, _context);
+        new(_creditRepoMock.Object, _creditServiceRepoMock.Object, _clientRepoMock.Object);
 
     private static CreditServiceEntity MakeCreditService(decimal maxAmount = 10000, int maxTermMonths = 36) => new()
     {
@@ -168,7 +162,7 @@ public class CreditServiceTests
 
         _creditRepoMock.Verify(r => r.AddAsync(It.IsAny<ConsumerCredit>()), Times.Once);
         _creditRepoMock.Verify(r => r.SaveChangesAsync(), Times.Exactly(2));
-        _context.ChangeTracker.Entries<RepaymentPlan>().Count().ShouldBe(1);
+        _creditRepoMock.Verify(r => r.AddRepaymentPlanAsync(It.IsAny<RepaymentPlan>()), Times.Once);
     }
 
     [Fact]
@@ -290,7 +284,7 @@ public class CreditServiceTests
 
         _creditRepoMock.Verify(r => r.AddAsync(It.IsAny<MortgageCredit>()), Times.Once);
         _creditRepoMock.Verify(r => r.SaveChangesAsync(), Times.Exactly(2));
-        _context.ChangeTracker.Entries<RepaymentPlan>().Count().ShouldBe(1);
+        _creditRepoMock.Verify(r => r.AddRepaymentPlanAsync(It.IsAny<RepaymentPlan>()), Times.Once);
     }
 
     [Fact]

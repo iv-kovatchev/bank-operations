@@ -55,4 +55,19 @@ public class CreditRepository : ICreditRepository
             .Include(rp => rp.Installments.OrderBy(i => i.InstallmentNumber))
             .FirstOrDefaultAsync(rp => rp.CreditId == creditId);
 
+    public async Task AddRepaymentPlanAsync(RepaymentPlan plan)
+        => await _context.RepaymentPlans.AddAsync(plan);
+
+    public async Task DeleteRepaymentPlanByCreditIdAsync(Guid creditId)
+    {
+        var existingPlan = await _context.RepaymentPlans
+            .Include(rp => rp.Installments)
+            .FirstOrDefaultAsync(rp => rp.CreditId == creditId);
+
+        if (existingPlan != null)
+        {
+            _context.RepaymentInstallments.RemoveRange(existingPlan.Installments);
+            _context.RepaymentPlans.Remove(existingPlan);
+        }
+    }
 }
