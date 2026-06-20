@@ -24,7 +24,7 @@ const TransactionForm = ({ mode, accountId, clientId, onClose }: TransactionForm
         {error && <Toast message={error.message} type="error" />}
 
         <Flex direction="column" gap="1">
-          <Text as="label" size="2" weight="medium">Amount (BGN)</Text>
+          <Text as="label" size="2" weight="medium">Amount (EUR)</Text>
           <TextField.Root
             type="number"
             step="0.01"

@@ -4,6 +4,7 @@ import PublicRoutes from './PublicRoutes';
 import AdminRoutes from './AdminRoutes';
 import EmployeeRoutes from './EmployeeRoutes';
 import ClientRoutes from './ClientRoutes';
+import AuthenticatedRoutes from './AuthenticatedRoutes';
 import PageLayout from '../components/PageLayout/PageLayout';
 import Header from '../components/Header/Header';
 import LoginPage from '../pages/Login/LoginPage';
@@ -15,6 +16,9 @@ import NotFound from '../pages/NotFound/NotFound';
 import ClientsListPage from '../pages/Employee/Clients/ClientsListPage/ClientsListPage';
 import ClientDetailPage from '../pages/Employee/Clients/ClientDetailPage/ClientDetailPage';
 import CreditServicesPage from '../pages/Admin/CreditServices/CreditServicesPage';
+import EmployeesListPage from '../pages/Admin/Employees/EmployeesListPage';
+import ActivityLogPage from '../pages/Admin/ActivityLog/ActivityLogPage';
+import SettingsPage from '../pages/Settings/SettingsPage';
 import { useAuth } from '../context/auth/useAuth';
 
 const RootRedirect = () => {
@@ -55,6 +59,8 @@ const AppRoutes = () => (
         <Route path="/admin/clients" element={<ClientsListPage />} />
         <Route path="/admin/clients/:id" element={<ClientDetailPage />} />
         <Route path="/admin/credit-services" element={<CreditServicesPage />} />
+        <Route path="/admin/employees" element={<EmployeesListPage />} />
+        <Route path="/admin/activity-log" element={<ActivityLogPage />} />
       </Route>
 
       <Route element={<EmployeeRoutes />}>
@@ -65,6 +71,10 @@ const AppRoutes = () => (
 
       <Route element={<ClientRoutes />}>
         <Route path="/client/dashboard" element={<ClientDashboard />} />
+      </Route>
+
+      <Route element={<AuthenticatedRoutes />}>
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
     </Route>
 

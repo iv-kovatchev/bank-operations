@@ -4,8 +4,8 @@ import { Box, Flex, Text, TextField } from '@radix-ui/themes';
 import { useOpenAccount } from '../../../../../api/bank-accounts/useOpenAccount';
 import Button from '../../../../../components/Button/Button';
 import Toast from '../../../../../components/Toast/Toast';
-import { openAccountSchema } from '../openAccountForm.schema';
-import type { OpenAccountFormData } from '../openAccountForm.schema';
+import { openAccountSchema } from './openAccountForm.schema';
+import type { OpenAccountFormData } from './openAccountForm.schema';
 
 interface OpenAccountFormProps {
   clientId: string;
@@ -59,7 +59,7 @@ const OpenAccountForm = ({ clientId, onClose }: OpenAccountFormProps) => {
         </Flex>
 
         <Flex direction="column" gap="1">
-          <Text as="label" size="2" weight="medium">Initial Balance (BGN)</Text>
+          <Text as="label" size="2" weight="medium">Initial Balance (EUR)</Text>
           <TextField.Root
             type="number"
             placeholder="0"

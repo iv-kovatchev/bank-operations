@@ -28,7 +28,7 @@ public class OtpService : IOtpService
         if (_environment.IsDevelopment())
         {
             var user = await _userManager.FindByIdAsync(userId.ToString());
-            if (user != null && await _userManager.IsInRoleAsync(user, "Employee"))
+            if (user != null && (await _userManager.IsInRoleAsync(user, "Employee") || await _userManager.IsInRoleAsync(user, "Client")))
             {
                 await _otpRepository.InvalidateAllForUserAsync(userId);
                 var devOtp = new OtpCode

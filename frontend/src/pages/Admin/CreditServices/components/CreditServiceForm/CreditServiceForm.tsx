@@ -51,7 +51,7 @@ const CreditServiceForm = ({ mode, initialData, onClose }: CreditServiceFormProp
         </Flex>
 
         <Flex direction="column" gap="1">
-          <Text as="label" size="2" weight="medium">Max Amount (BGN)</Text>
+          <Text as="label" size="2" weight="medium">Max Amount (EUR)</Text>
           <TextField.Root type="number" placeholder="10000" {...register('maxAmount')} />
           {errors.maxAmount && <Text size="1" color="red">{errors.maxAmount.message}</Text>}
         </Flex>

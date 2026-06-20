@@ -39,7 +39,7 @@ const CreditServicesPage = () => {
             <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>Type</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>Interest Rate (%)</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Max Amount (BGN)</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>Max Amount (EUR)</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>Max Term (months)</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>Actions</Table.ColumnHeaderCell>
           </Table.Row>

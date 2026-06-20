@@ -73,7 +73,7 @@ const AccountsSection = ({ clientId, role }: AccountsSectionProps) => {
               accounts.map((account) => (
                 <Table.Row key={account.id}>
                   <Table.Cell>{account.iban}</Table.Cell>
-                  <Table.Cell>{account.balance.toFixed(2)} BGN</Table.Cell>
+                  <Table.Cell>{account.balance.toFixed(2)} EUR</Table.Cell>
                   <Table.Cell>
                     <Badge color={account.status === AccountStatus.Active ? 'green' : 'red'}>
                       {account.status}

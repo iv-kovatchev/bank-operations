@@ -6,11 +6,12 @@ interface FormModalProps {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  maxWidth?: string;
 }
 
-const FormModal = ({ open, title, onClose, children }: FormModalProps) => (
+const FormModal = ({ open, title, onClose, children, maxWidth }: FormModalProps) => (
   <Dialog.Root open={open} onOpenChange={(o) => !o && onClose()}>
-    <Dialog.Content maxWidth="480px" aria-describedby={undefined}>
+    <Dialog.Content maxWidth={maxWidth ?? '480px'} maxHeight="80vh" aria-describedby={undefined}>
       <Dialog.Title>{title}</Dialog.Title>
       {children}
     </Dialog.Content>

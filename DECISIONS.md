@@ -299,6 +299,118 @@
 
 ---
 
+## 2026-06-20 — feature/credits backend
+
+### CreditServiceEntity alias in the CreditService service class
+**Decision:** `CreditService` (the service class implementing `ICreditService`) uses `using CreditServiceEntity = BankOperations.Entities.CreditService;` to resolve the naming conflict with the service class itself.
+**Why:** Both the entity (`Entities.CreditService`) and the service class (`Services.Credits.CreditService`) are named `CreditService`. The alias makes parameter and variable types readable (`CreditServiceEntity creditService`) without renaming either class — consistent with the same pattern already used in `Services/CreditServices/CreditServiceService.cs`.
+
+### Credit update blocked once any installment is paid
+**Decision:** `UpdateConsumerCreditAsync`/`UpdateMortgageCreditAsync` throw `ValidationException("Cannot update a credit with paid installments.")` if any `RepaymentInstallment.PaidAt != null` on the credit's current plan. Updates are also blocked if `Credit.Status != CreditStatus.Active`.
+**Why:** Changing `Amount` or `TermMonths` requires regenerating the repayment plan from scratch. If installments have already been paid against the old plan's values, regenerating would silently invalidate that payment history (principal/interest breakdown, remaining balance) — there is no way to reconcile already-collected payments against a new schedule.
+
+### Shared generic validation helper for credit updates
+**Decision:** `ValidateAndPrepareUpdateAsync<T>(Guid id, Guid requestingUserId, bool isAdmin) where T : Credit` is a private helper in `CreditService` that loads the credit via `GetByIdWithDetailsAsync`, casts to `T` (throwing `NotFoundException` on mismatch), and runs the ownership check, active-status check, and paid-installments check. Both `UpdateConsumerCreditAsync` and `UpdateMortgageCreditAsync` call it as `await ValidateAndPrepareUpdateAsync<ConsumerCredit>(...)` / `<MortgageCredit>(...)`.
+**Why:** Both update methods had identical validation logic (load → cast → ownership → status → paid-installments) before the credit-type-specific field assignment. Extracting it into a generic helper eliminates the duplication while the `where T : Credit` constraint keeps the cast and the returned type fully type-safe — no `as Credit` boxing or extra casting needed in the calling methods.
+
+---
+
+## 2026-06-20 — Parallel feature development
+
+### Parallel feature development
+**Decision:** `feature/employees`, `feature/activity-log`, and `feature/settings` are developed in parallel on separate feature branches and merged into `develop`.
+**Why:** These features are independent from the remaining core work (credits frontend, installments, client portal, dashboards) and share no endpoints or components with the active development track. Parallel development reduces total delivery time without risk of merge conflicts.
+
+---
+
+## 2026-06-20 — feature/frontend-credits
+
+### FormModal accepts an optional maxWidth prop
+**Decision:** `FormModal` accepts an optional `maxWidth` prop (default `"480px"`).
+**Why:** The RepaymentPlan table has many columns and needs more horizontal space. A generic prop keeps `FormModal` reusable without hardcoding widths per use case.
+
+---
+
+## 2026-06-20 — feature/employees backend
+
+### Employee has no separate entity or table
+**Decision:** Employee accounts are plain `ApplicationUser` rows with role `"Employee"` — no `Employee` entity, no TPT, no `Employees` table, no migration.
+**Why:** Same reasoning as the original Client model before the `Clients` table existed: an Employee has no fields beyond what `AspNetUsers` already provides (`FirstName`, `LastName`, `Email`, `IsActive`, `CreatedAt`). Adding a table with zero extra columns would only add a join for no benefit. `IClientRepository`/`IClientService` proved this pattern works for accounts that are "just a user with a role" — `IEmployeeRepository` queries `ApplicationDbContext.Users` directly and filters by role via `UserManager.GetUsersInRoleAsync("Employee")` instead of a dedicated query.
+
+### No ownership isolation for employees
+**Decision:** `EmployeeService` has no `requestingUserId`/`isAdmin` ownership check anywhere — every method is reachable only by Admin (`[Authorize(Roles = "Admin")]` at the controller class level), and any Admin can view/deactivate/activate any employee.
+**Why:** The Employee→Client ownership model (`Client.CreatedByUserId` filtering) exists because multiple Employees manage disjoint client portfolios. There is no equivalent concept for Employees themselves — Employees do not manage other Employees, and there is exactly one tier (Admin) above them. Adding an ownership check here would model a relationship that doesn't exist in the domain.
+
+### Reuse PasswordGenerator and EmailService; ActivityLogService deferred
+**Decision:** `EmployeeService` injects the existing `IPasswordGenerator` and `IEmailService` (`SendWelcomeEmailAsync`) from the Clients feature rather than writing employee-specific equivalents. `IActivityLogService.LogAsync` calls are intentionally **not** included in `CreateEmployeeAsync`/`DeactivateEmployeeAsync`/`ActivateEmployeeAsync`.
+**Why:** Password generation and the welcome-email flow are identical regardless of role (Client vs Employee) — both create an `ApplicationUser` with a generated password and send the same email shape. Duplicating either would create two sources of truth for password rules and email templates. `IActivityLogService` is excluded because it does not exist in this branch yet — `feature/activity-log` (teammate's parallel branch) has not been merged into `develop`. The call sites are deliberately left out rather than stubbed against a temporary interface, to avoid a throwaway type that would need to be deleted and reconciled at merge time; logging will be added once the real `IActivityLogService` lands.
+
+---
+
+## 2026-06-20 — feature/employees frontend
+
+### Create-only EmployeeForm — no edit mode
+**Decision:** `EmployeeForm` only supports creation. There is no `UpdateEmployeeAsync` call, no edit `FormModal` instance, and no employee detail page — unlike `IndividualClientForm`/`CorporateClientForm`, which support both create and edit from day one.
+**Why:** The backend has no `UpdateEmployeeAsync`/`PUT` endpoint for employees yet — it's listed only as a future extension in the employees backend knowledge doc, not implemented. Building an edit form against a non-existent endpoint would mean either a throwaway form or a half-wired one; matching frontend scope to actual backend capability keeps both in sync. Edit support can be added later by following the same pattern already proven on Clients.
+
+---
+
+## 2026-06-21 — feature/installments
+
+### Paying an installment withdraws from a selected bank account
+**Decision:** Paying an installment withdraws the amount directly from a selected bank account.
+**Why:** More realistic banking behavior — the payment is linked to an actual account balance. The employee selects which of the client's active accounts to debit, and the system validates sufficient funds before marking the installment as paid.
+
+### Credit.Status derived automatically from installment paid state
+**Decision:** `Credit.Status` automatically changes to `PaidOff` when all installments are paid, and back to `Active` when any installment is unpaid.
+**Why:** Avoids manual status management — the system derives the credit status from the installment data, keeping the two in sync automatically.
+
+---
+
+## 2026-06-20 — feature/activity-log
+
+### Explicit service-layer LogAsync calls, not a controller filter or EF interceptor
+**Decision:** Activity logging is implemented as explicit `await _activityLogService.LogAsync(...)` calls placed inline at the end of each business operation in the relevant service (`EmployeeService`, `IndividualClientService`, `CorporateClientService`, `BankAccountService`, `CreditService`), rather than a cross-cutting `IActionFilter`/middleware or an EF Core `SaveChanges` interceptor.
+**Why:** This matches the pattern already documented in `CONVENTIONS.md`/`DECISIONS.md` (`ActivityLogs` section, "Why ActivityLogs table"). A filter or interceptor would log generically (e.g. "entity X changed") without the ability to express the specific `Action` string and a human-readable `Details` message per operation (e.g. `"Granted consumer credit of {dto.Amount}"`). Explicit calls keep full control over what gets logged and read naturally at the call site, at the cost of needing to remember to add the call when a new operation is written.
+
+### LogAsync swallows its own exceptions — never propagates
+**Decision:** `ActivityLogService.LogAsync` wraps its repository call in try/catch, logs any failure via `ILogger<ActivityLogService>`, and never rethrows.
+**Why:** Activity logging is an audit side-effect, not part of the core transaction. If writing the audit row failed and that exception propagated, a `GlobalExceptionMiddleware`-caught 500 would roll back or fail an otherwise-successful deposit, credit grant, or client creation — turning a logging bug into a banking-operation outage. Swallowing the exception (with a logged error for visibility) means the worst case of an audit-log failure is a missing log row, never a broken business operation.
+
+### Activity log filtering is client-side, loaded once
+**Decision:** `GET /api/activity-logs` returns the full list; `useActivityLogPage` filters by user, action, and date range entirely in the browser against the already-loaded array. There is no server-side filter/search endpoint.
+**Why:** Matches the existing project-wide convention already used by every other list page (`useClientsListPage`, `useEmployeesListPage`) — search/filter is derived state on a single loaded array, no extra API calls per filter change. Consistent with the project's current scale; would need pagination + server-side filtering if the log volume grows large enough that loading the full table becomes a problem.
+
+### Retrofit scope limited to methods that already accept a requesting-user parameter
+**Decision:** `LogAsync` was wired into `EmployeeService`, `IndividualClientService`, `CorporateClientService`, `BankAccountService` (Open/Close/Deposit/Withdraw), and `CreditService` (Grant/Update for both credit types) — all methods that already had a `requestingUserId`/`createdByUserId` parameter. `ClientService.DeactivateAsync`/`ActivateAsync`, `BankAccountService.DeleteAccountAsync`, and `CreditServiceService` (Create/Update/Delete) were **not** touched.
+**Why:** None of the excluded methods currently accept a requesting-user identifier in their signature — adding a `LogAsync` call there would require a signature change (and updating every caller/controller) first. Bundling a logging feature with an unrelated signature-change refactor across three other services risks scope creep and unrelated breakage. Deferred as a separate, explicit follow-up task instead.
+
+### Dummy seed data clearly marked and idempotent
+**Decision:** `DataSeeder` inserts 12+ `ActivityLog` rows for manual testing, with every `Details` value prefixed `"[DUMMY] "`. Before inserting, it checks `_context.ActivityLogs.AnyAsync(al => al.Details != null && al.Details.StartsWith("[DUMMY]"))` and skips seeding entirely if any such row already exists.
+**Why:** Manual testing of the User/Action/date-range filters needs real spread-out data, but seed data must never silently duplicate on every app restart (same idempotency principle as the rest of `DataSeeder` — see `2026-05-28` entry). The `"[DUMMY]"` prefix makes these rows unmistakably test data, so they can be found and deleted via a simple `LIKE '[DUMMY]%'` query (or a future cleanup script) without risking a real audit row.
+
+---
+
+## 2026-06-21 — feature/settings
+
+### Profile editing restricted to Admin/Employee — Client excluded
+**Decision:** `GET /api/settings/profile` and `PUT /api/settings/profile` are `[Authorize(Roles = "Admin,Employee")]`, not open to `Client` as originally scoped in `PROGRESS.md`. `PATCH /api/settings/password` remains open to all three roles.
+**Why:** `IndividualClient`/`CorporateClient` store their own `FirstName`/`LastName` via TPT, separate from `ApplicationUser` — this is a deliberate pre-existing duplication (see the `Clients` entity design), not an oversight. If a Client edited their name via Settings, only the `ApplicationUser` row would change; the TPT `IndividualClient`/`CorporateClient` row (which is what `ClientsListPage`/`ClientDetailPage` actually read and display to Employees/Admins) would silently go stale. Syncing the two on every profile edit was considered and rejected — it treats the symptom (two name fields) rather than the cause (Client is documented in `PROJECT.md` as read-only self-service; it should not have a name-editing surface at all). Restricting profile editing to Admin/Employee, who have no such duplicate, sidesteps the desync entirely. Client keeps password change, which only ever touches `ApplicationUser` and has no duplicate-field risk.
+
+### No email-change flow
+**Decision:** `UpdateProfileDto` does not include `Email`. There is no way to change a user's login email through Settings.
+**Why:** An email change on an Identity-backed account should require re-verification (confirm the new address belongs to the user) before it takes effect, to avoid account-takeover via a typo'd or attacker-supplied address. That verification flow (token generation, confirmation email, confirmation endpoint) doesn't exist yet anywhere in the project. Adding email-change without it would be a security gap; building the full verified flow is out of scope for this feature. Deferred as a separate follow-up.
+
+### ActivityLog wired in for UpdateProfile/ChangePassword
+**Decision:** Unlike several other deferred call sites (`ClientService` activate/deactivate, `BankAccountService.DeleteAccountAsync`, `CreditServiceService`), `SettingsService.UpdateProfileAsync` and `ChangePasswordAsync` call `_activityLogService.LogAsync` directly.
+**Why:** Those other methods were deferred specifically because they don't yet accept a requesting-user identifier in their signature (see the `2026-06-20 — feature/activity-log` retrofit-scope decision above) — wiring them in would require a signature change across every caller. `SettingsService` has no such gap: every method already operates on the authenticated caller's own `ApplicationUser` (the userId comes from the JWT via the controller), so the actor's id is already on hand at zero extra cost. There was no reason to defer it.
+
+### No repository — SettingsService operates directly via UserManager
+**Decision:** `SettingsService` has no `ISettingsRepository`. `GetProfileAsync`, `UpdateProfileAsync`, and `ChangePasswordAsync` all call `UserManager<ApplicationUser>` directly.
+**Why:** Settings has no entity of its own — every operation reads or writes `ApplicationUser` fields (`FirstName`, `LastName`, password hash) through Identity's own APIs (`UpdateAsync`, `ChangePasswordAsync`). This matches the precedent already set by `EmployeeService` (no `Employee` entity, `UserManager` used directly) and `AuthService` (same, for login/OTP) — a repository wrapping `UserManager` would just be an extra indirection layer with no query logic of its own to justify it.
+
+---
+
 ## Template for new decisions
 
 ```markdown

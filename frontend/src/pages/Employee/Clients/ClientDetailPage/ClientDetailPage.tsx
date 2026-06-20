@@ -9,6 +9,7 @@ import Badge from '../../../../components/Badge/Badge';
 import IndividualClientForm from '../components/IndividualClientForm/IndividualClientForm';
 import CorporateClientForm from '../components/CorporateClientForm/CorporateClientForm';
 import AccountsSection from '../components/AccountsSection/AccountsSection';
+import CreditsSection from '../components/CreditsSection/CreditsSection';
 import { ClientType } from '../../../../types/client.types';
 import type { IndividualClientResponse, CorporateClientResponse } from '../../../../types/client.types';
 
@@ -126,8 +127,7 @@ const ClientDetailPage = () => {
 
       <AccountsSection clientId={client.id} role={role ?? ''} />
 
-      <Heading size="4" mb="2" mt="5">Credits</Heading>
-      <Text color="gray">Coming soon...</Text>
+      <CreditsSection clientId={client.id} role={role ?? ''} />
 
       <FormModal
         open={isEditModalOpen && editModalMode === 'edit-individual'}

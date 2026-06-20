@@ -1,6 +1,6 @@
 import { Avatar, Box, DropdownMenu, Flex, IconButton, Text } from '@radix-ui/themes';
 import { SunIcon, MoonIcon, HamburgerMenuIcon } from '@radix-ui/react-icons';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import { useHeader } from './useHeader';
 import type { HeaderProps } from './Header.types';
@@ -8,6 +8,7 @@ import './Header.styles.css';
 
 const Header = ({ isAuthenticated, isSidebarOpen, onToggleSidebar }: HeaderProps) => {
   const { theme, toggleTheme, displayName, initials, role, roleColor, logout, isLoggingOut } = useHeader(isAuthenticated);
+  const navigate = useNavigate();
 
   return (
     <header className="app-header">
@@ -55,7 +56,9 @@ const Header = ({ isAuthenticated, isSidebarOpen, onToggleSidebar }: HeaderProps
                     <Text as="p" size="1" color="gray">{role}</Text>
                   </Box>
 
-                  <DropdownMenu.Item className="header-dropdown-item">Settings</DropdownMenu.Item>
+                  <DropdownMenu.Item className="header-dropdown-item" onSelect={() => navigate('/settings')}>
+                    Settings
+                  </DropdownMenu.Item>
 
                   <DropdownMenu.Item
                     className="header-dropdown-item"

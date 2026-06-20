@@ -220,9 +220,86 @@
   - `CreditServicesPage.tsx` + `useCreditServicesPage.ts` — table (Name, Type, Interest Rate, Max Amount, Max Term, Actions), Add/Edit via shared `FormModal` + `CreditServiceForm`, Delete via `ConfirmModal`
   - Route `/admin/credit-services` added under `AdminRoutes` in `src/routes/index.tsx`
   - Sidebar: "Credit Services" item added to `ADMIN_ITEMS` with `CardStackIcon`
-- [ ] `feature/credits` + `feature/frontend-credits` — Credits (Consumer + Mortgage) + Repayment Plan generation
-- [ ] `feature/installments` — Mark installment as paid + credit status check
-- [ ] `feature/activity-log` + `feature/frontend-admin` — Activity Log middleware + Employee management + Admin view
+- [x] `feature/credits` (backend) — Credits (Consumer + Mortgage) + annuity Repayment Plan generation — `2026-06-20`
+  - `CreditsController` — `GET /api/clients/{clientId}/credits`, `GET /api/credits/{id}`, `POST /api/clients/{clientId}/credits/consumer`, `POST /api/clients/{clientId}/credits/mortgage` (Employee,Admin), `PUT /api/credits/{id}/consumer`, `PUT /api/credits/{id}/mortgage` (Employee,Admin), `GET /api/credits/{id}/repayment-plan`; class-level `[Authorize(Roles = "Employee,Admin,Client")]` with Client self-access check on `GetAll` (`clientId == userId` from JWT, else `Forbid()`)
+  - `ICreditRepository` / `CreditRepository` — `GetAllByClientIdAsync` (eager-loads `Client`, `CreditService`), `GetByIdWithDetailsAsync` (eager-loads `Client`, `CreditService`, `RepaymentPlan.Installments` ordered by `InstallmentNumber`), `GetRepaymentPlanAsync` + standard CRUD
+  - `ICreditService` / `CreditService` — `GetAllByClientIdAsync`, `GetByIdAsync`, `GrantConsumerCreditAsync`, `GrantMortgageCreditAsync`, `UpdateConsumerCreditAsync`, `UpdateMortgageCreditAsync`, `GetRepaymentPlanAsync`
+  - `GrantConsumerCreditAsync`/`GrantMortgageCreditAsync` validate `Amount`/`TermMonths` against the selected `CreditService`'s `MaxAmount`/`MaxTermMonths`, throw `ValidationException` if the client is inactive, then generate and persist the annuity `RepaymentPlan` + `RepaymentInstallments` in the same transaction as the credit
+  - `UpdateConsumerCreditAsync`/`UpdateMortgageCreditAsync` block updates on non-`Active` credits or credits with any paid installment (`PaidAt != null`); on a valid update, the existing repayment plan/installments are deleted and regenerated from the new `Amount`/`TermMonths`/`CreditServiceId`
+  - Ownership check on all per-credit operations: Employee can only access credits of clients they created (`Client.CreatedByUserId == requestingUserId`); Admin bypasses; Client role can only list/view its own credits
+  - `CreditMapper` extended in `Mappers/Credits/` — `ToDto(Credit)` (dispatches Consumer/Mortgage), `ToDto(RepaymentPlan)`
+  - DTOs: `CreateConsumerCreditDto`, `UpdateConsumerCreditDto`, `CreateMortgageCreditDto`, `UpdateMortgageCreditDto`, `CreditResponseDto`, `RepaymentPlanResponseDto`, `RepaymentInstallmentResponseDto`
+  - Registered in `Config/ServiceExtensions.cs` (`ICreditService`) and `Config/RepositoryExtensions.cs` (`ICreditRepository`)
+  - Unit tests: `CreditsControllerTests` (10) + `CreditServiceTests` (21) + `CreditRepositoryTests` (12) — 43 new unit tests
+  - Integration tests: `CreditsIntegrationTests` (11) — full HTTP pipeline with role/ownership checks
+  - Total: 190 tests passing (136 previous + 54 new)
+- [x] `feature/employees` (backend) — Admin creates/activates/deactivates Employee accounts — `2026-06-20`
+  - `EmployeesController` — `POST /api/employees` (create), `GET /api/employees` (list), `GET /api/employees/{id}` (get one), `PATCH /api/employees/{id}/deactivate`, `PATCH /api/employees/{id}/activate`; class-level `[Authorize(Roles = "Admin")]` — every endpoint Admin-only
+  - `IEmployeeRepository` / `EmployeeRepository` — `GetByIdAsync` (plain `ApplicationUser` lookup), `GetAllAsync` (via `UserManager.GetUsersInRoleAsync("Employee")`), `ExistsByEmailAsync`; works against `ApplicationDbContext.Users` + `UserManager<ApplicationUser>`, no entity of its own
+  - `IEmployeeService` / `EmployeeService` — `CreateEmployeeAsync`, `GetAllEmployeesAsync`, `GetEmployeeByIdAsync`, `DeactivateEmployeeAsync`, `ActivateEmployeeAsync`; shared private `GetEmployeeUserAsync(id)` loads the user and checks `UserManager.IsInRoleAsync(user, "Employee")`, throwing `NotFoundException("Employee", id)` if missing or not an Employee
+  - DTOs: `CreateEmployeeDto`, `UpdateEmployeeDto`, `EmployeeResponseDto` in `DTOs/Employees/`
+  - `EmployeeMapper` static class in `Mappers/Employees/` — `ToDto(ApplicationUser)`
+  - Reuses `IPasswordGenerator` and `IEmailService` (`SendWelcomeEmailAsync`) from the Clients feature — no duplicate password/email logic
+  - Registered in `Config/ServiceExtensions.cs` and `Config/RepositoryExtensions.cs`
+  - **No separate entity/table** — Employee is an `ApplicationUser` with role `"Employee"` only; no TPT, no `Employees` table, no migration. `IsActive`/`CreatedAt` read directly from `AspNetUsers`, same as `ApplicationUser` already used elsewhere
+  - **No ownership isolation** — unlike Employee→Client (`CreatedByUserId` filtering), Admin manages all employees with no per-admin scoping; there is no employee-managing-employee concept
+  - Activity log calls intentionally omitted — `IActivityLogService` does not exist yet (`feature/activity-log` not merged); to be wired in once that branch lands
+- [x] `feature/employees` (frontend) — Admin-only `/admin/employees` page listing all employees with status, create/deactivate/activate actions via `FormModal` + `ConfirmModal` — `2026-06-20`
+  - `src/types/employee.types.ts` — `EmployeeResponse`, `CreateEmployeeDto`, `UpdateEmployeeDto`
+  - 5 API hooks in `src/api/employees/`: `useGetEmployees`, `useGetEmployee`, `useCreateEmployee`, `useDeactivateEmployee`, `useActivateEmployee`; all invalidate `['employees']` on success
+  - `EmployeesListPage` + `useEmployeesListPage` — single table, search/filter by name/email, `ConfirmModal` pattern for activate/deactivate (mutation never called directly from button click)
+  - `EmployeeForm` + `useEmployeeForm` — create-only form (no edit mode yet), rendered inside the shared `FormModal`
+  - Route `/admin/employees` added under `AdminRoutes`; Sidebar "Employees" item added to `ADMIN_ITEMS`
+  - No automated tests written — per the no-more-tests decision logged under the backend entry above
+  - `feature/employees` now fully complete (backend + frontend) for its planned scope: list, create, activate, deactivate. Update flow and an employee detail page were never part of the planned scope and remain open if needed later.
+- [x] `feature/frontend-credits` — Credits (Consumer + Mortgage) frontend + Repayment Plan view — `2026-06-20`
+  - `src/types/credit.types.ts` — `CreditStatus`, `CreditPurpose`, `PropertyType` as-const objects; `CreditResponse`, `RepaymentPlanResponse`, `RepaymentInstallmentResponse`; Create/Update request interfaces for Consumer and Mortgage credits
+  - 7 API hooks in `src/api/credits/`: `useGetClientCredits`, `useGetCredit`, `useGetRepaymentPlan`, `useGrantConsumerCredit`, `useGrantMortgageCredit`, `useUpdateConsumerCredit`, `useUpdateMortgageCredit`
+  - `ConsumerCreditForm/` — form + co-located hook + schema; Credit Service dropdown filtered to Consumer-type services, plus a Purpose dropdown
+  - `MortgageCreditForm/` — form + co-located hook + schema; Credit Service dropdown filtered to Mortgage-type services, plus a Property Type dropdown
+  - `CreditsSection/` — table (Type, Amount, Term, Status, Created At, Actions) on the client detail page; Grant Consumer/Mortgage Credit buttons; per-row Edit (Active credits only) + Repayment Plan buttons; `FormModal`s for create/edit reuse the form components in `create`/`edit` mode
+  - `RepaymentPlanSection/` — Monthly Installment + Generated At header, installments table (#, Due Date, Principal, Interest, Total, Remaining Balance, Status); Status renders green "Paid" / gray "Pending" from `isPaid`; table wrapped in a horizontally-scrollable `Box`; rendered inside a `FormModal` with `maxWidth="900px"` for the wider column set
+  - `CreditsSection` and `RepaymentPlanSection` added to `ClientDetailPage`, below the existing `AccountsSection`
+  - `FormModal` extended with an optional `maxWidth` prop (defaults to `"480px"`) and `maxHeight="80vh"` on `Dialog.Content` so wide/tall modal content scrolls internally instead of the page behind it
+  - Schema files for earlier features moved to live alongside their forms instead of a shared file: `individualClientForm.schema.ts`, `corporateClientForm.schema.ts`, `openAccountForm.schema.ts` now co-located in their respective component folders
+- [x] `feature/installments` — Mark installment as paid/unpaid + automatic credit status check — `2026-06-21`
+  - `PATCH /api/credits/{creditId}/installments/{installmentId}/pay` (Employee,Admin) — marks the installment as paid, withdraws the installment total (`PrincipalPart + InterestPart`) from a selected bank account, sets `Credit.Status = CreditStatus.PaidOff` when every installment on the plan is paid
+  - `PATCH /api/credits/{creditId}/installments/{installmentId}/unpay` (Employee,Admin) — reverts the installment to unpaid, sets `Credit.Status = CreditStatus.Active` if it had been `PaidOff`
+  - `PayInstallmentDto` — `BankAccountId` (`Guid`, `[Required]`)
+  - `ICreditRepository`/`CreditRepository` — added `GetInstallmentByIdAsync(Guid installmentId)`
+  - `ICreditService`/`CreditService` — added `PayInstallmentAsync(creditId, installmentId, bankAccountId, requestingUserId, isAdmin)` and `UnpayInstallmentAsync(creditId, installmentId, requestingUserId, isAdmin)`; `CreditService` now also injects `IBankAccountRepository` to load the account (`GetByIdWithClientAsync`), validate it's `Active` with sufficient `Balance`, debit it, and persist via the same `SaveChangesAsync()` call as the installment/credit-status change (both repositories share the same scoped `DbContext`)
+  - `CreditMapper.ToDto(RepaymentInstallment)` changed from `private` to `public` so `CreditService` can map the updated installment directly
+  - Frontend: `usePayInstallment` / `useUnpayInstallment` hooks in `src/api/credits/`; `usePayInstallment` sends `{ bankAccountId }` as the PATCH body and invalidates `['repayment-plan', creditId]`, `['credits', clientId]`, and `['accounts', clientId]` on success (account balance changes too)
+  - `PayInstallmentForm/` — new component folder (`PayInstallmentForm.tsx` + `usePayInstallmentForm.ts` + `payInstallmentForm.schema.ts`); loads the client's accounts via `useGetClientAccounts`, filters to `AccountStatus.Active`, Select dropdown shows `IBAN — balance BGN`
+  - `RepaymentPlanSection` — "Pay" button now opens a `FormModal` rendering `PayInstallmentForm` (bank account selection required) instead of firing the mutation directly; "Unpay" remains a direct one-click action; new "Remaining Amount" row in the header (sum of `totalAmount` across unpaid installments) updates automatically via the existing query invalidation
+  - No automated tests written for this feature (existing 190 backend tests still pass unaffected; `CreditServiceTests.cs` updated only for the new constructor parameter)
+- [x] `feature/activity-log` (backend + frontend) — Audit log of Employee/Admin operations; Admin-only view with filters — `2026-06-20`
+  - ActivityLog entity/table already existed from the initial migration but was previously unused — this feature wires it up end-to-end
+  - `IActivityLogRepository` / `ActivityLogRepository` (`Repositories/ActivityLogs/`) — `GetAllAsync` eager-loads `User`, ordered by `Timestamp` descending; standard `AddAsync`/`SaveChangesAsync`, no base class
+  - `IActivityLogService` / `ActivityLogService` (`Services/ActivityLogs/`) — `LogAsync` wraps the repository call in try/catch and logs any failure via `ILogger<ActivityLogService>`, **never rethrows**; `GetAllLogsAsync` maps results via `ActivityLogMapper`
+  - `ActivityLogsController` — `GET /api/activity-logs`, `[Authorize(Roles = "Admin")]` at class level
+  - `ActivityLogResponseDto` (`DTOs/ActivityLogs/`) — `Id, UserId, UserName, Action, EntityType, EntityId, Timestamp, Details`; `ActivityLogMapper` builds `UserName` as `$"{log.User.FirstName} {log.User.LastName}"`
+  - Registered in `Config/RepositoryExtensions.cs` and `Config/ServiceExtensions.cs`
+  - `LogAsync` calls wired into: `EmployeeService` (Create/Activate/Deactivate), `IndividualClientService` (Create/Update), `CorporateClientService` (Create/Update), `BankAccountService` (Open/Close/Deposit/Withdraw), `CreditService` (GrantConsumer/GrantMortgage/UpdateConsumer/UpdateMortgage) — each call placed right before the final `return`, after the entity is already saved
+  - **Not yet wired:** `ClientService.DeactivateAsync`/`ActivateAsync`, `BankAccountService.DeleteAccountAsync`, `CreditServiceService` (Create/Update/Delete) — none of these currently accept a `requestingUserId`/`createdByUserId` parameter; logging them needs a signature change first, deferred as a follow-up task
+  - `DataSeeder` — added 12+ dummy `ActivityLog` rows for manual filter testing; every `Details` value prefixed `"[DUMMY] "`; idempotent (`AnyAsync` check on the prefix skips seeding if dummy rows already exist); varied `Action`/`EntityType`/`Timestamp` (today, days ago, weeks ago) across the seeded admin/employee users
+  - Frontend: `activity-log.types.ts` — `ActivityLogResponse`
+  - `useGetActivityLogs.ts` — single read-only React Query hook (`queryKey: ['activity-logs']`), no mutations
+  - `ActivityLogPage.tsx` + `useActivityLogPage.ts` — table (Timestamp, User, Action, Entity Type, Entity Id, Details), client-side filters (User/Action `Select` with "All Users"/"All Actions" sentinel options, From/To date range), empty state ("No activity logs")
+  - Date inputs styled icon-only via webkit pseudo-elements (`::-webkit-datetime-edit*` hidden, `::-webkit-calendar-picker-indicator` kept) with "From"/"To" text labels in front
+  - Route `/admin/activity-log` added under `AdminRoutes`; Sidebar "Activity Log" item added to `ADMIN_ITEMS` (`ClockIcon`)
+  - No automated tests written — per the no-more-tests decision
+- [x] `feature/settings` (backend + frontend) — Change password + update profile info — `2026-06-21`
+  - DTOs in `DTOs/Settings/`: `ChangePasswordDto`, `UpdateProfileDto`, `ProfileResponseDto`
+  - `ISettingsService` / `SettingsService` — operates directly via `UserManager<ApplicationUser>`, no repository: `GetProfileAsync`, `UpdateProfileAsync`, `ChangePasswordAsync`
+  - `LogAsync` wired into `UpdateProfileAsync` and `ChangePasswordAsync` (`Action`: `UpdateProfile`, `ChangePassword`)
+  - `SettingsController` — `GET /api/settings/profile`, `PUT /api/settings/profile` restricted to `[Authorize(Roles = "Admin,Employee")]`; `PATCH /api/settings/password` open to all authenticated roles (`Admin,Employee,Client`)
+  - **GET/PUT profile is Admin/Employee only — Client excluded.** `IndividualClient`/`CorporateClient` store their own `FirstName`/`LastName` via TPT, separate from `ApplicationUser`. Client is documented as read-only self-service (`PROJECT.md`) — allowing Client self-edit via Settings would silently desync the duplicated name fields from the Employee/Admin-facing Clients list. Client keeps password change only.
+  - Frontend: `src/types/settings.types.ts`; hooks `useGetProfile`/`useUpdateProfile`/`useChangePassword` in `src/api/settings/`
+  - `SettingsPage` + `useSettingsPage` — Profile card (Admin/Employee only) + Change Password card (all roles)
+  - `AuthenticatedRoutes.tsx` — `/settings` route has no role check, only `isAuthenticated`
+  - Header "Settings" dropdown item wired to navigate to `/settings`
+  - No automated tests written — per the no-more-tests decision
 
 ### Phase 4 — Dashboards
 
@@ -266,4 +343,9 @@
 - `2026-06-05` — `CloseAccount` endpoint opened to `Employee,Admin` (was Admin only) — employees need to close accounts as part of daily operations; physical deletion remains Admin-only
 - `2026-06-05` — `OpenAccountAsync` calls `GetByIdWithDetailsAsync` (not `GetByIdAsync`) to eagerly load `client.User` so `IsActive` can be checked without a second query
 - `2026-06-14` — Integration tests for `feature/account-transactions` (Deposit/Withdraw) must use unique EGN/email/IBAN per test, and the client must be created by the same employee performing the transaction — ownership checks are anchored to `Client.CreatedByUserId`, so a client created by a different user causes `UnauthorizedException` (401) instead of the expected result
+- `2026-06-20` — `feature/credits` (backend) — granting a credit and updating a credit both regenerate the full `RepaymentPlan`/`RepaymentInstallments` in the same DB transaction as the credit change, so a credit and its plan can never be persisted out of sync
+- `2026-06-20` — `feature/employees`, `feature/activity-log`, `feature/settings` assigned to teammate; will be developed in parallel on separate feature branches and merged into develop
+- `2026-06-20` — `feature/employees` (backend) completed ahead of the original parallel-track plan; reuses `AspNetUsers` + role `"Employee"` (no new entity/table/migration) and the existing `PasswordGenerator`/`EmailService` from the Clients feature; `IActivityLogService` calls deferred since `feature/activity-log` is not yet merged
+- `2026-06-20` — `feature/activity-log` (backend + frontend) completed: `ActivityLog` entity/table reused from the initial migration; `LogAsync` swallows its own exceptions (never breaks the calling business operation) and is now wired into `EmployeeService`, `IndividualClientService`, `CorporateClientService`, `BankAccountService`, and `CreditService`; `ClientService` activate/deactivate, `BankAccountService.DeleteAccountAsync`, and `CreditServiceService` are deferred since they don't yet accept a requesting-user parameter; `DataSeeder` seeds idempotent `[DUMMY]`-prefixed rows for manual filter testing
+- `2026-06-21` — `feature/settings` (backend + frontend) completed: profile editing (`GET`/`PUT /api/settings/profile`) restricted to `Admin,Employee` instead of all roles as originally scoped — Client's name fields live on `IndividualClient`/`CorporateClient` (TPT), not `ApplicationUser`, so a Client editing their own profile through Settings would silently desync from the Employee/Admin-facing Clients list; Client retains password change only (`PATCH /api/settings/password`, open to all roles)
 
