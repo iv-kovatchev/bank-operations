@@ -262,7 +262,17 @@
   - `CreditsSection` and `RepaymentPlanSection` added to `ClientDetailPage`, below the existing `AccountsSection`
   - `FormModal` extended with an optional `maxWidth` prop (defaults to `"480px"`) and `maxHeight="80vh"` on `Dialog.Content` so wide/tall modal content scrolls internally instead of the page behind it
   - Schema files for earlier features moved to live alongside their forms instead of a shared file: `individualClientForm.schema.ts`, `corporateClientForm.schema.ts`, `openAccountForm.schema.ts` now co-located in their respective component folders
-- [ ] `feature/installments` — Mark installment as paid + credit status check
+- [x] `feature/installments` — Mark installment as paid/unpaid + automatic credit status check — `2026-06-21`
+  - `PATCH /api/credits/{creditId}/installments/{installmentId}/pay` (Employee,Admin) — marks the installment as paid, withdraws the installment total (`PrincipalPart + InterestPart`) from a selected bank account, sets `Credit.Status = CreditStatus.PaidOff` when every installment on the plan is paid
+  - `PATCH /api/credits/{creditId}/installments/{installmentId}/unpay` (Employee,Admin) — reverts the installment to unpaid, sets `Credit.Status = CreditStatus.Active` if it had been `PaidOff`
+  - `PayInstallmentDto` — `BankAccountId` (`Guid`, `[Required]`)
+  - `ICreditRepository`/`CreditRepository` — added `GetInstallmentByIdAsync(Guid installmentId)`
+  - `ICreditService`/`CreditService` — added `PayInstallmentAsync(creditId, installmentId, bankAccountId, requestingUserId, isAdmin)` and `UnpayInstallmentAsync(creditId, installmentId, requestingUserId, isAdmin)`; `CreditService` now also injects `IBankAccountRepository` to load the account (`GetByIdWithClientAsync`), validate it's `Active` with sufficient `Balance`, debit it, and persist via the same `SaveChangesAsync()` call as the installment/credit-status change (both repositories share the same scoped `DbContext`)
+  - `CreditMapper.ToDto(RepaymentInstallment)` changed from `private` to `public` so `CreditService` can map the updated installment directly
+  - Frontend: `usePayInstallment` / `useUnpayInstallment` hooks in `src/api/credits/`; `usePayInstallment` sends `{ bankAccountId }` as the PATCH body and invalidates `['repayment-plan', creditId]`, `['credits', clientId]`, and `['accounts', clientId]` on success (account balance changes too)
+  - `PayInstallmentForm/` — new component folder (`PayInstallmentForm.tsx` + `usePayInstallmentForm.ts` + `payInstallmentForm.schema.ts`); loads the client's accounts via `useGetClientAccounts`, filters to `AccountStatus.Active`, Select dropdown shows `IBAN — balance BGN`
+  - `RepaymentPlanSection` — "Pay" button now opens a `FormModal` rendering `PayInstallmentForm` (bank account selection required) instead of firing the mutation directly; "Unpay" remains a direct one-click action; new "Remaining Amount" row in the header (sum of `totalAmount` across unpaid installments) updates automatically via the existing query invalidation
+  - No automated tests written for this feature (existing 190 backend tests still pass unaffected; `CreditServiceTests.cs` updated only for the new constructor parameter)
 - [ ] `feature/activity-log` (backend + frontend) — Auto-log all Employee/Admin operations; Admin view with filters
   - Backend: `IActivityLogService`, `ActivityLogService`, `IActivityLogRepository`, `ActivityLogRepository`, `ActivityLogsController`
   - Frontend: `/admin/activity-log` page, table with filters (by employee, date range, action type)

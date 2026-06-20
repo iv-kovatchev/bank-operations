@@ -355,6 +355,18 @@
 
 ---
 
+## 2026-06-21 — feature/installments
+
+### Paying an installment withdraws from a selected bank account
+**Decision:** Paying an installment withdraws the amount directly from a selected bank account.
+**Why:** More realistic banking behavior — the payment is linked to an actual account balance. The employee selects which of the client's active accounts to debit, and the system validates sufficient funds before marking the installment as paid.
+
+### Credit.Status derived automatically from installment paid state
+**Decision:** `Credit.Status` automatically changes to `PaidOff` when all installments are paid, and back to `Active` when any installment is unpaid.
+**Why:** Avoids manual status management — the system derives the credit status from the installment data, keeping the two in sync automatically.
+
+---
+
 ## Template for new decisions
 
 ```markdown
