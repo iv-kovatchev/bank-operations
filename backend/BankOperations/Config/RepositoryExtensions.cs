@@ -1,4 +1,5 @@
-﻿using BankOperations.Repositories.BankAccounts;
+﻿using BankOperations.Repositories.ActivityLogs;
+using BankOperations.Repositories.BankAccounts;
 using BankOperations.Repositories.Clients;
 using BankOperations.Repositories.Credits;
 using BankOperations.Repositories.CreditServices;
@@ -19,6 +20,7 @@ public static class RepositoryExtensions
         services.AddScoped<ICreditServiceRepository, CreditServiceRepository>();
         services.AddScoped<ICreditRepository, CreditRepository>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+        services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
         return services;
     }
 }

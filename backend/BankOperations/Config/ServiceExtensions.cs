@@ -1,3 +1,4 @@
+using BankOperations.Services.ActivityLogs;
 using BankOperations.Services.Auth;
 using BankOperations.Services.BankAccounts;
 using BankOperations.Services.Clients;
@@ -29,6 +30,7 @@ public static class ServiceExtensions
         services.AddScoped<ICreditServiceService, CreditServiceService>();
         services.AddScoped<ICreditService, CreditService>();
         services.AddScoped<IEmployeeService, EmployeeService>();
+        services.AddScoped<IActivityLogService, ActivityLogService>();
         return services;
     }
 }

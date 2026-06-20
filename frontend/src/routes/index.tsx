@@ -16,6 +16,7 @@ import ClientsListPage from '../pages/Employee/Clients/ClientsListPage/ClientsLi
 import ClientDetailPage from '../pages/Employee/Clients/ClientDetailPage/ClientDetailPage';
 import CreditServicesPage from '../pages/Admin/CreditServices/CreditServicesPage';
 import EmployeesListPage from '../pages/Admin/Employees/EmployeesListPage';
+import ActivityLogPage from '../pages/Admin/ActivityLog/ActivityLogPage';
 import { useAuth } from '../context/auth/useAuth';
 
 const RootRedirect = () => {
@@ -57,6 +58,7 @@ const AppRoutes = () => (
         <Route path="/admin/clients/:id" element={<ClientDetailPage />} />
         <Route path="/admin/credit-services" element={<CreditServicesPage />} />
         <Route path="/admin/employees" element={<EmployeesListPage />} />
+        <Route path="/admin/activity-log" element={<ActivityLogPage />} />
       </Route>
 
       <Route element={<EmployeeRoutes />}>

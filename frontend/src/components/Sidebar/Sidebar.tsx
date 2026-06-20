@@ -1,6 +1,6 @@
 import { Box, Flex } from '@radix-ui/themes';
 import { Link, useLocation } from 'react-router-dom';
-import { DashboardIcon, PersonIcon, CardStackIcon, IdCardIcon } from '@radix-ui/react-icons';
+import { DashboardIcon, PersonIcon, CardStackIcon, IdCardIcon, ClockIcon } from '@radix-ui/react-icons';
 import { useAuth } from '../../context/auth/useAuth';
 import type { SidebarItem } from './Sidebar.types';
 import './Sidebar.styles.css';
@@ -15,6 +15,7 @@ const ADMIN_ITEMS: SidebarItem[] = [
   { label: 'Clients', path: '/admin/clients', icon: <PersonIcon /> },
   { label: 'Credit Services', path: '/admin/credit-services', icon: <CardStackIcon /> },
   { label: 'Employees', path: '/admin/employees', icon: <IdCardIcon /> },
+  { label: 'Activity Log', path: '/admin/activity-log', icon: <ClockIcon /> },
 ];
 
 const ITEMS_BY_ROLE: Record<string, SidebarItem[]> = {
