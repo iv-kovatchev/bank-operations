@@ -235,7 +235,15 @@
   - Total: 190 tests passing (136 previous + 54 new)
 - [ ] `feature/frontend-credits` — Credits (Consumer + Mortgage) frontend + Repayment Plan view
 - [ ] `feature/installments` — Mark installment as paid + credit status check
-- [ ] `feature/activity-log` + `feature/frontend-admin` — Activity Log middleware + Employee management + Admin view
+- [ ] `feature/employees` (backend + frontend) — Admin creates/deactivates/activates Employee accounts; Admin-only page listing all employees with status
+  - Backend: `EmployeesController`, `IEmployeeService`, `EmployeeService`, DTOs (`CreateEmployeeDto`, `UpdateEmployeeDto`, `EmployeeResponseDto`)
+  - Frontend: `/admin/employees` page, table with search, create/deactivate/activate actions, `FormModal` + `ConfirmModal`
+- [ ] `feature/activity-log` (backend + frontend) — Auto-log all Employee/Admin operations; Admin view with filters
+  - Backend: `IActivityLogService`, `ActivityLogService`, `IActivityLogRepository`, `ActivityLogRepository`, `ActivityLogsController`
+  - Frontend: `/admin/activity-log` page, table with filters (by employee, date range, action type)
+- [ ] `feature/settings` (backend + frontend) — Change password + update profile info
+  - Backend: `SettingsController`, `ISettingsService`, `SettingsService`; uses `UserManager` for password change and profile update
+  - Frontend: `/settings` page accessible to all roles (Admin, Employee, Client)
 
 ### Phase 4 — Dashboards
 
@@ -280,4 +288,5 @@
 - `2026-06-05` — `OpenAccountAsync` calls `GetByIdWithDetailsAsync` (not `GetByIdAsync`) to eagerly load `client.User` so `IsActive` can be checked without a second query
 - `2026-06-14` — Integration tests for `feature/account-transactions` (Deposit/Withdraw) must use unique EGN/email/IBAN per test, and the client must be created by the same employee performing the transaction — ownership checks are anchored to `Client.CreatedByUserId`, so a client created by a different user causes `UnauthorizedException` (401) instead of the expected result
 - `2026-06-20` — `feature/credits` (backend) — granting a credit and updating a credit both regenerate the full `RepaymentPlan`/`RepaymentInstallments` in the same DB transaction as the credit change, so a credit and its plan can never be persisted out of sync
+- `2026-06-20` — `feature/employees`, `feature/activity-log`, `feature/settings` assigned to teammate; will be developed in parallel on separate feature branches and merged into develop
 

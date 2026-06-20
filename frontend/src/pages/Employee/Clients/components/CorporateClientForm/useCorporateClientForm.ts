@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCreateCorporateClient } from '../../../../../api/clients/useCreateCorporateClient';
 import { useUpdateCorporateClient } from '../../../../../api/clients/useUpdateCorporateClient';
-import { corporateClientSchema, type CorporateClientFormData } from '../clientForm.schema';
+import { corporateClientSchema, type CorporateClientFormData } from './corporateClientForm.schema';
 import type { CorporateClientResponse } from '../../../../../types/client.types';
 
 interface UseCorporateClientFormProps {

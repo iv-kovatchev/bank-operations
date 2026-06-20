@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCreateIndividualClient } from '../../../../../api/clients/useCreateIndividualClient';
 import { useUpdateIndividualClient } from '../../../../../api/clients/useUpdateIndividualClient';
-import { individualClientSchema, type IndividualClientFormData } from '../clientForm.schema';
+import { individualClientSchema, type IndividualClientFormData } from './individualClientForm.schema';
 import type { IndividualClientResponse } from '../../../../../types/client.types';
 
 interface UseIndividualClientFormProps {
