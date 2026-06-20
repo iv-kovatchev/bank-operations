@@ -339,6 +339,14 @@
 
 ---
 
+## 2026-06-20 — feature/employees frontend
+
+### Create-only EmployeeForm — no edit mode
+**Decision:** `EmployeeForm` only supports creation. There is no `UpdateEmployeeAsync` call, no edit `FormModal` instance, and no employee detail page — unlike `IndividualClientForm`/`CorporateClientForm`, which support both create and edit from day one.
+**Why:** The backend has no `UpdateEmployeeAsync`/`PUT` endpoint for employees yet — it's listed only as a future extension in the employees backend knowledge doc, not implemented. Building an edit form against a non-existent endpoint would mean either a throwaway form or a half-wired one; matching frontend scope to actual backend capability keeps both in sync. Edit support can be added later by following the same pattern already proven on Clients.
+
+---
+
 ## Template for new decisions
 
 ```markdown

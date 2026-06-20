@@ -244,7 +244,14 @@
   - **No separate entity/table** — Employee is an `ApplicationUser` with role `"Employee"` only; no TPT, no `Employees` table, no migration. `IsActive`/`CreatedAt` read directly from `AspNetUsers`, same as `ApplicationUser` already used elsewhere
   - **No ownership isolation** — unlike Employee→Client (`CreatedByUserId` filtering), Admin manages all employees with no per-admin scoping; there is no employee-managing-employee concept
   - Activity log calls intentionally omitted — `IActivityLogService` does not exist yet (`feature/activity-log` not merged); to be wired in once that branch lands
-- [ ] `feature/employees` (frontend) — Admin-only `/admin/employees` page listing all employees with status, create/deactivate/activate actions via `FormModal` + `ConfirmModal`
+- [x] `feature/employees` (frontend) — Admin-only `/admin/employees` page listing all employees with status, create/deactivate/activate actions via `FormModal` + `ConfirmModal` — `2026-06-20`
+  - `src/types/employee.types.ts` — `EmployeeResponse`, `CreateEmployeeDto`, `UpdateEmployeeDto`
+  - 5 API hooks in `src/api/employees/`: `useGetEmployees`, `useGetEmployee`, `useCreateEmployee`, `useDeactivateEmployee`, `useActivateEmployee`; all invalidate `['employees']` on success
+  - `EmployeesListPage` + `useEmployeesListPage` — single table, search/filter by name/email, `ConfirmModal` pattern for activate/deactivate (mutation never called directly from button click)
+  - `EmployeeForm` + `useEmployeeForm` — create-only form (no edit mode yet), rendered inside the shared `FormModal`
+  - Route `/admin/employees` added under `AdminRoutes`; Sidebar "Employees" item added to `ADMIN_ITEMS`
+  - No automated tests written — per the no-more-tests decision logged under the backend entry above
+  - `feature/employees` now fully complete (backend + frontend) for its planned scope: list, create, activate, deactivate. Update flow and an employee detail page were never part of the planned scope and remain open if needed later.
 - [ ] `feature/frontend-credits` — Credits (Consumer + Mortgage) frontend + Repayment Plan view
 - [ ] `feature/installments` — Mark installment as paid + credit status check
 - [ ] `feature/activity-log` (backend + frontend) — Auto-log all Employee/Admin operations; Admin view with filters
