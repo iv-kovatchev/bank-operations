@@ -5,6 +5,7 @@ using BankOperations.Enums;
 using BankOperations.Exceptions;
 using BankOperations.Repositories.BankAccounts;
 using BankOperations.Repositories.Clients;
+using BankOperations.Services.ActivityLogs;
 using BankOperations.Services.BankAccounts;
 using Moq;
 using Shouldly;
@@ -15,9 +16,10 @@ public class BankAccountServiceTests
 {
     private readonly Mock<IBankAccountRepository> _repoMock = new();
     private readonly Mock<IClientRepository> _clientRepoMock = new();
+    private readonly Mock<IActivityLogService> _activityLogServiceMock = new();
 
     private BankAccountService CreateService() =>
-        new(_repoMock.Object, _clientRepoMock.Object);
+        new(_repoMock.Object, _clientRepoMock.Object, _activityLogServiceMock.Object);
 
     private static Client MakeClient(Guid clientId) =>
         new IndividualClient

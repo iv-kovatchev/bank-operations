@@ -3,6 +3,7 @@ using BankOperations.Entities;
 using BankOperations.Entities.Clients;
 using BankOperations.Exceptions;
 using BankOperations.Repositories.Clients;
+using BankOperations.Services.ActivityLogs;
 using BankOperations.Services.Clients.CorporateClients;
 using BankOperations.Services.Email;
 using BankOperations.Services.Password;
@@ -20,9 +21,10 @@ public class CorporateClientServiceTests
     private readonly Mock<UserManager<ApplicationUser>> _userManagerMock = MockUserManager();
     private readonly Mock<IPasswordGenerator> _passwordGeneratorMock = new();
     private readonly Mock<IEmailService> _emailServiceMock = new();
+    private readonly Mock<IActivityLogService> _activityLogServiceMock = new();
 
     private CorporateClientService CreateService() =>
-        new(_repoMock.Object, _userManagerMock.Object, _passwordGeneratorMock.Object, _emailServiceMock.Object);
+        new(_repoMock.Object, _userManagerMock.Object, _passwordGeneratorMock.Object, _emailServiceMock.Object, _activityLogServiceMock.Object);
 
     private static Mock<UserManager<ApplicationUser>> MockUserManager()
     {
