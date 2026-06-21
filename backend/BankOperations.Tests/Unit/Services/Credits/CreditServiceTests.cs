@@ -9,6 +9,7 @@ using BankOperations.Repositories.BankAccounts;
 using BankOperations.Repositories.Clients;
 using BankOperations.Repositories.Credits;
 using BankOperations.Repositories.CreditServices;
+using BankOperations.Services.ActivityLogs;
 using Moq;
 using Shouldly;
 using CreditServiceEntity = BankOperations.Entities.CreditService;
@@ -21,9 +22,15 @@ public class CreditServiceTests
     private readonly Mock<ICreditServiceRepository> _creditServiceRepoMock = new();
     private readonly Mock<IClientRepository> _clientRepoMock = new();
     private readonly Mock<IBankAccountRepository> _bankAccountRepoMock = new();
+    private readonly Mock<IActivityLogService> _activityLogServiceMock = new();
 
     private BankOperations.Services.Credits.CreditService CreateService() =>
-        new(_creditRepoMock.Object, _creditServiceRepoMock.Object, _clientRepoMock.Object, _bankAccountRepoMock.Object);
+        new(
+            _creditRepoMock.Object,
+            _creditServiceRepoMock.Object,
+            _clientRepoMock.Object,
+            _bankAccountRepoMock.Object,
+            _activityLogServiceMock.Object);
 
     private static CreditServiceEntity MakeCreditService(decimal maxAmount = 10000, int maxTermMonths = 36) => new()
     {
