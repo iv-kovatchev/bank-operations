@@ -245,6 +245,8 @@ public class CreditService : ICreditService
 
         await _creditRepository.SaveChangesAsync();
 
+        await _activityLogService.LogAsync(requestingUserId, "PayInstallment", "RepaymentInstallment", installmentId, $"Paid installment #{installment.InstallmentNumber} for credit {creditId}");
+
         return CreditMapper.ToDto(installment);
     }
 
@@ -269,6 +271,8 @@ public class CreditService : ICreditService
             credit.Status = CreditStatus.Active;
 
         await _creditRepository.SaveChangesAsync();
+
+        await _activityLogService.LogAsync(requestingUserId, "UnpayInstallment", "RepaymentInstallment", installmentId, $"Unpaid installment #{installment.InstallmentNumber} for credit {creditId}");
 
         return CreditMapper.ToDto(installment);
     }

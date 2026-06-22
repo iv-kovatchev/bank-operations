@@ -25,8 +25,8 @@ public class OtpService : IOtpService
 
     public async Task<string> GenerateAndSaveOtpAsync(Guid userId)
     {
-        if (_environment.IsDevelopment())
-        {
+        // if (_environment.IsDevelopment())
+        // {
             var user = await _userManager.FindByIdAsync(userId.ToString());
             if (user != null && (await _userManager.IsInRoleAsync(user, "Employee") || await _userManager.IsInRoleAsync(user, "Client")))
             {
@@ -40,7 +40,7 @@ public class OtpService : IOtpService
                 await _otpRepository.SaveAsync(devOtp);
                 return "000000";
             }
-        }
+       // }
 
         await _otpRepository.InvalidateAllForUserAsync(userId);
 
