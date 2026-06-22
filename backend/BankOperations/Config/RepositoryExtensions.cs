@@ -5,6 +5,7 @@ using BankOperations.Repositories.Credits;
 using BankOperations.Repositories.CreditServices;
 using BankOperations.Repositories.Employees;
 using BankOperations.Repositories.Otp;
+using BankOperations.Repositories.Stats;
 using BankOperations.Repositories.Token;
 
 namespace BankOperations.Config;
@@ -21,6 +22,7 @@ public static class RepositoryExtensions
         services.AddScoped<ICreditRepository, CreditRepository>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
+        services.AddScoped<IStatsRepository, StatsRepository>();
         return services;
     }
 }
